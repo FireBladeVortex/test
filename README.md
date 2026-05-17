@@ -1,1 +1,1 @@
-[https://firebladevortex.github.io/test/index.html](https://firebladevortex.github.io/test/index.html){:target="_blank"}
+<a href="https://firebladevortex.github.io/test/index.html" target="_blank">https://firebladevortex.github.io/test/index.html</a>
