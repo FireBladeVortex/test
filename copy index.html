@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>응답 필터</title>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       [ 전역 초기화 ]
+       모든 요소의 box-sizing을 border-box로 설정 → 패딩/테두리가
+       width/height 안에 포함되어 레이아웃 계산이 쉬워짐
+       margin, padding 기본값 제거로 브라우저마다 다른 여백을 통일
+    ═══════════════════════════════════════════════════════════════ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 페이지 전체 (body) ]
+       ─ font-family : 글꼴 지정 (원하는 글꼴로 교체 가능)
+       ─ background  : 페이지 배경색 ← 원하는 색으로 변경
+       ─ padding     : 페이지 안쪽 여백 ← 숫자를 키우면 콘텐츠가 더 안쪽으로
+       ─ color       : 기본 글자색 ← 원하는 색으로 변경
+    ═══════════════════════════════════════════════════════════════ */
+    body {
+      font-family: 'Segoe UI', sans-serif; /* ← 글꼴 (예: 'Noto Sans KR', sans-serif) */
+      background: #f5f7fa;                 /* ← 페이지 배경색 */
+      padding: 2rem;                       /* ← 페이지 전체 여백 (상하좌우) */
+      color: #333;                         /* ← 기본 글자색 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 페이지 제목 (h1) ]
+       ─ margin-bottom : 제목 아래 여백
+       ─ font-size     : 글자 크기 ← 원하는 크기로 변경 (예: 2rem)
+       ─ color         : 글자색 ← 원하는 색으로 변경
+    ═══════════════════════════════════════════════════════════════ */
+    h1 {
+      margin-bottom: 1.5rem; /* ← 제목 아래 여백 */
+      font-size: 1.4rem;     /* ← 제목 글자 크기 */
+      color: #222;           /* ← 제목 글자색 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 필터 섹션 / 결과 섹션 공통 카드 스타일 ]
+       .filter-section → 필터(체크박스) 영역을 감싸는 흰 카드
+       .result-section → 결과 테이블을 감싸는 흰 카드
+       ─ background    : 카드 배경색 ← 원하는 색으로 변경
+       ─ border-radius : 모서리 둥글기 ← 숫자를 키우면 더 둥글어짐
+       ─ padding       : 카드 안쪽 여백 ← 숫자를 키우면 내용이 더 여유로워짐
+       ─ margin-bottom : 카드 아래 여백 (섹션 간격)
+       ─ box-shadow    : 카드 그림자 (0 1px 4px = 작고 은은한 그림자)
+    ═══════════════════════════════════════════════════════════════ */
+    .filter-section {
+      background: white;                          /* ← 카드 배경색 */
+      border-radius: 12px;                        /* ← 모서리 둥글기 */
+      padding: 1.5rem;                            /* ← 카드 안쪽 여백 */
+      margin-bottom: 1.5rem;                      /* ← 다음 카드와의 간격 */
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);    /* ← 그림자 (크기·색 조절 가능) */
+    }
+
+    .result-section {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 섹션 소제목 (h2) ]
+       필터 카드 안의 "문항 선택" 같은 작은 제목
+       ─ font-size      : 글자 크기
+       ─ color          : 글자색 ← 원하는 색으로 변경
+       ─ text-transform : uppercase → 영문 대문자 변환 (한글엔 영향 없음)
+       ─ letter-spacing : 글자 간격 ← 숫자를 키우면 더 벌어짐
+    ═══════════════════════════════════════════════════════════════ */
+    .filter-section h2 {
+      font-size: 0.9rem;          /* ← 소제목 글자 크기 */
+      color: #888;                /* ← 소제목 글자색 */
+      margin-bottom: 1rem;        /* ← 아래 여백 */
+      text-transform: uppercase;  /* ← 영문이면 대문자로 표시 */
+      letter-spacing: 0.05em;     /* ← 글자 사이 간격 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 문항 블록 (.question-block) ]
+       각 질문 하나를 감싸는 묶음 (제목 + 선택지)
+       ─ margin-bottom : 문항 간 세로 간격 ← 숫자를 키우면 더 넓어짐
+    ═══════════════════════════════════════════════════════════════ */
+    .question-block {
+      margin-bottom: 1.2rem; /* ← 문항 사이 간격 */
+    }
+
+    /* 문항 제목 (h3) — 각 질문의 이름 표시 */
+    .question-block h3 {
+      font-size: 0.95rem;   /* ← 문항 제목 크기 */
+      font-weight: 600;     /* ← 굵기 (400=보통, 700=굵게) */
+      margin-bottom: 0.5rem;/* ← 제목과 선택지 사이 간격 */
+      color: #444;          /* ← 문항 제목 색 ← 원하는 색으로 변경 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 선택지 목록 (.options) ]
+       체크박스 버튼들을 가로로 나열하는 컨테이너
+       ─ display   : flex → 가로 배치
+       ─ flex-wrap : wrap → 화면이 좁으면 자동 줄바꿈
+       ─ gap       : 버튼 사이 간격 ← 숫자를 키우면 더 벌어짐
+    ═══════════════════════════════════════════════════════════════ */
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem; /* ← 버튼 사이 간격 */
+    }
+
+    /* ─────────────────────────────────────────
+       [ 개별 선택지 라벨 (클릭 가능한 버튼처럼 생긴 체크박스 래퍼) ]
+       ─ background    : 기본(미선택) 배경색 ← 원하는 색으로 변경
+       ─ border-radius : 알약 모양 (50% 이상이면 완전한 타원)
+       ─ padding       : 안쪽 여백 (위아래 / 좌우)
+       ─ font-size     : 글자 크기
+       ─ border        : 테두리 (기본은 투명)
+       ─ transition    : 마우스 올릴 때 색 변화 속도
+    ───────────────────────────────────────── */
+    .options label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #f0f2f5;          /* ← 미선택 배경색 ← 원하는 색으로 변경 */
+      border-radius: 20px;           /* ← 모서리 둥글기 (크면 타원형) */
+      padding: 0.35rem 0.8rem;       /* ← 위아래 / 좌우 여백 */
+      cursor: pointer;
+      font-size: 0.85rem;            /* ← 선택지 글자 크기 */
+      border: 2px solid transparent; /* ← 테두리 (선택 시 색이 들어옴) */
+      transition: all 0.15s;         /* ← 색 변화 애니메이션 속도 */
+    }
+
+    /* 마우스를 올렸을 때 배경색 변경 */
+    .options label:hover {
+      background: #e0e7ff; /* ← hover 배경색 ← 원하는 색으로 변경 */
+    }
+
+    /* 실제 체크박스 input은 숨김 (라벨이 체크박스 역할 대신 함) */
+    .options input[type=checkbox] { display: none; }
+
+    /* 체크된 상태의 텍스트 스타일 */
+    .options input[type=checkbox]:checked + span {
+      color: #4f46e5;      /* ← 선택됐을 때 글자색 ← 원하는 색으로 변경 */
+      font-weight: 600;    /* ← 선택됐을 때 글자 굵기 */
+    }
+
+    /* 체크된 상태의 라벨 배경·테두리 스타일 */
+    .options label:has(input:checked) {
+      background: #eef2ff;    /* ← 선택됐을 때 배경색 ← 원하는 색으로 변경 */
+      border-color: #4f46e5;  /* ← 선택됐을 때 테두리색 ← 원하는 색으로 변경 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 하단 버튼 묶음 (.actions) ]
+       "확인" 버튼과 "초기화" 버튼을 가로로 나란히 배치
+       ─ gap        : 버튼 사이 간격
+       ─ margin-top : 버튼과 체크박스 목록 사이 여백
+    ═══════════════════════════════════════════════════════════════ */
+    .actions {
+      display: flex;
+      gap: 0.8rem;       /* ← 버튼 사이 간격 */
+      margin-top: 1rem;  /* ← 위쪽 여백 */
+    }
+
+    /* ─────────────────────────────────────────
+       [ 공통 버튼 스타일 ]
+       ─ padding      : 안쪽 여백 (위아래 / 좌우) ← 크기 조절
+       ─ border-radius: 모서리 둥글기
+       ─ font-size    : 글자 크기
+       ─ font-weight  : 글자 굵기
+    ───────────────────────────────────────── */
+    button {
+      padding: 0.6rem 1.4rem;  /* ← 버튼 크기 (위아래 / 좌우 여백) */
+      border-radius: 8px;       /* ← 모서리 둥글기 */
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;        /* ← 버튼 글자 크기 */
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+
+    /* [ 확인(필터) 버튼 ] — 강조색 */
+    #btnFilter {
+      background: #4f46e5; /* ← 확인 버튼 배경색 ← 원하는 색으로 변경 */
+      color: white;        /* ← 확인 버튼 글자색 */
+    }
+    #btnFilter:hover {
+      background: #4338ca; /* ← hover 시 배경색 (조금 더 어둡게) */
+    }
+
+    /* [ 초기화 버튼 ] — 중립색 */
+    #btnReset {
+      background: #e5e7eb; /* ← 초기화 버튼 배경색 ← 원하는 색으로 변경 */
+      color: #555;         /* ← 초기화 버튼 글자색 */
+    }
+    #btnReset:hover {
+      background: #d1d5db; /* ← hover 시 배경색 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 결과 안내 텍스트 (.result-meta) ]
+       "총 N건 일치" 같은 결과 요약 문구
+       ─ font-size    : 글자 크기
+       ─ color        : 글자색
+       ─ margin-bottom: 아래 여백 (테이블과의 간격)
+    ═══════════════════════════════════════════════════════════════ */
+    .result-meta {
+      font-size: 0.85rem;   /* ← 안내 문구 글자 크기 */
+      color: #888;          /* ← 안내 문구 글자색 */
+      margin-bottom: 1rem;  /* ← 테이블과의 간격 */
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 결과 테이블 전체 ]
+       ─ width           : 테이블 너비 (100% = 카드 꽉 채움)
+       ─ border-collapse : 셀 테두리를 하나로 합침
+       ─ font-size       : 테이블 글자 크기 ← 원하는 크기로 변경
+    ═══════════════════════════════════════════════════════════════ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem; /* ← 테이블 글자 크기 */
+    }
+
+    /* [ 테이블 헤더 (th) ] — 컬럼 이름 행 */
+    th {
+      background: #f8f9fa;           /* ← 헤더 배경색 ← 원하는 색으로 변경 */
+      padding: 10px 12px;            /* ← 헤더 셀 안쪽 여백 */
+      text-align: left;
+      border-bottom: 2px solid #e5e7eb; /* ← 헤더 아래 구분선 색·두께 */
+      color: #555;                   /* ← 헤더 글자색 */
+      font-size: 0.8rem;             /* ← 헤더 글자 크기 */
+      text-transform: uppercase;     /* ← 영문이면 대문자 표시 */
+    }
+
+    /* [ 테이블 데이터 셀 (td) ] */
+    td {
+      padding: 10px 12px;              /* ← 데이터 셀 안쪽 여백 */
+      border-bottom: 1px solid #f0f0f0; /* ← 행 사이 구분선 색·두께 */
+    }
+
+    /* 마지막 행은 아래 구분선 제거 */
+    tr:last-child td { border-bottom: none; }
+
+    /* [ 강조 셀 (.highlight) ]
+       필터 조건과 일치하는 값에 자동으로 적용되는 스타일
+       ─ background : 강조 배경색 ← 원하는 색으로 변경
+       ─ color      : 강조 글자색 ← 원하는 색으로 변경 */
+    .highlight {
+      background: #fefce8; /* ← 일치 항목 배경색 (옅은 노란색) */
+      font-weight: 600;
+      color: #854d0e;      /* ← 일치 항목 글자색 (갈색 계열) */
+    }
+
+    /* [ 결과 없음 메시지 ] */
+    .empty {
+      text-align: center;
+      color: #aaa;   /* ← "결과 없음" 글자색 */
+      padding: 2rem; /* ← 메시지 위아래 여백 */
+    }
+
+    /* [ 로딩 중 메시지 ] — 데이터를 불러오는 동안 표시 */
+    .loading {
+      text-align: center;
+      color: #888;   /* ← 로딩 글자색 */
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       [ 페이지 제목 ]
+       이모지 + 텍스트 조합 — 원하는 제목으로 자유롭게 수정
+  ═══════════════════════════════════════════════════════════════ -->
+  <h1>📋 응답 필터</h1>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       [ 필터 카드 ]
+       GitHub JSON에서 불러온 데이터를 바탕으로
+       문항(컬럼)별 체크박스를 동적으로 생성하는 영역
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="filter-section">
+    <h2>문항 선택</h2>
+
+    <!-- JS가 체크박스를 여기에 자동 삽입
+         처음엔 "데이터 불러오는 중..." 메시지가 표시됨 -->
+    <div id="filters"><p class="loading">데이터 불러오는 중...</p></div>
+
+    <!-- 확인 / 초기화 버튼 -->
+    <div class="actions">
+      <button id="btnFilter">🔍 확인</button>  <!-- 필터 적용 → renderTable() 실행 -->
+      <button id="btnReset">✕ 초기화</button>  <!-- 모든 체크 해제 + 결과 초기화 -->
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       [ 결과 카드 ]
+       필터 적용 후 일치하는 데이터를 테이블로 표시하는 영역
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="result-section">
+    <!-- 결과 요약 텍스트 ("총 N건 일치" 등) — JS가 자동으로 업데이트 -->
+    <div class="result-meta" id="meta">필터를 선택하고 확인을 누르세요.</div>
+
+    <!-- 결과 테이블이 여기에 동적으로 삽입됨 — JS가 HTML을 직접 작성 -->
+    <div id="result"></div>
+  </div>
+
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════
+       [ 데이터 소스 설정 ]
+       JSON_URL  → GitHub Raw 경로. 데이터 파일 위치가 바뀌면 이 URL만 수정
+       EXCLUDE_COLS → 필터에서 제외할 컬럼 이름 배열
+                      예) 타임스탬프처럼 선택지로 만들기 불필요한 컬럼을 여기에 추가
+    ═══════════════════════════════════════════════════════════════ */
+    const JSON_URL = "https://raw.githubusercontent.com/in4dmareno/in4d/main/data/submissions.json";
+    const EXCLUDE_COLS = ["타임스탬프"]; /* ← 체크박스에서 숨길 컬럼명 추가 가능 */
+
+
+    /* ─── 전역 상태 변수 ──────────────────────────────────────────
+       allData    → fetch로 불러온 전체 데이터 배열 (객체 배열)
+       headers    → 데이터의 모든 컬럼 이름 (테이블 헤더에 사용)
+       filterCols → EXCLUDE_COLS를 제외한 필터 대상 컬럼 이름
+    ─────────────────────────────────────────────────────────── */
+    let allData = [];
+    let headers = [];
+    let filterCols = [];
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 데이터 로딩 ]
+       페이지가 열리자마자 GitHub JSON을 fetch로 가져옴
+       성공 시 → 문항별 체크박스를 동적으로 생성
+       실패 시 → 빨간 오류 메시지 표시
+    ═══════════════════════════════════════════════════════════════ */
+    fetch(JSON_URL)
+      .then(res => res.json())         /* 응답을 JSON으로 파싱 */
+      .then(data => {
+        allData = data;
+
+        /* 데이터가 비어 있으면 안내 후 종료 */
+        if (!data.length) {
+          document.getElementById("filters").innerHTML = "<p>데이터 없음</p>";
+          return;
+        }
+
+        /* 첫 번째 행의 키로 컬럼 이름 목록 생성 */
+        headers = Object.keys(data[0]);
+
+        /* 제외 목록을 뺀 필터용 컬럼만 추출 */
+        filterCols = headers.filter(h => !EXCLUDE_COLS.includes(h));
+
+        const filtersEl = document.getElementById("filters");
+        filtersEl.innerHTML = ""; /* 로딩 메시지 제거 */
+
+        /* ── 컬럼별로 체크박스 그룹 생성 ─────────────────────── */
+        filterCols.forEach(col => {
+
+          /* 해당 컬럼에서 중복 제거된 고유 값 목록 추출 */
+          const values = [...new Set(
+            data.map(r => String(r[col] ?? "")).filter(v => v !== "")
+          )];
+          if (!values.length) return; /* 값이 없으면 건너뜀 */
+
+          /* 문항 블록 생성 */
+          const block = document.createElement("div");
+          block.className = "question-block";
+          block.innerHTML = `<h3>${col}</h3>`; /* 컬럼명을 제목으로 */
+
+          /* 선택지 컨테이너 */
+          const optDiv = document.createElement("div");
+          optDiv.className = "options";
+
+          /* 고유 값마다 체크박스 라벨 생성
+             data-col → 어떤 컬럼인지 기록
+             data-val → 어떤 값인지 기록 (필터링에 사용) */
+          values.forEach(val => {
+            const id = `cb_${col}_${val}`;
+            optDiv.innerHTML += `
+              <label for="${id}">
+                <input type="checkbox" id="${id}" data-col="${col}" data-val="${val}">
+                <span>${val}</span>
+              </label>`;
+          });
+
+          block.appendChild(optDiv);
+          filtersEl.appendChild(block);
+        });
+      })
+      .catch(() => {
+        /* 네트워크 오류 또는 JSON 파싱 실패 시 */
+        document.getElementById("filters").innerHTML =
+          "<p style='color:red'>데이터 로딩 실패</p>";
+      });
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 확인 버튼 클릭 이벤트 ]
+       1. 체크된 체크박스를 모두 수집 → { 컬럼명: [선택값...] } 형태로 정리
+       2. 조건에 맞는 행을 allData에서 찾아 filtered 배열로 만듦
+       3. renderTable()로 결과를 화면에 출력
+       ※ 필터 로직: 체크된 컬럼 중 하나라도 일치하면 포함 (OR 조건)
+    ═══════════════════════════════════════════════════════════════ */
+    document.getElementById("btnFilter").addEventListener("click", () => {
+
+      /* 체크된 항목 수집 */
+      const checked = {};
+      document.querySelectorAll("input[type=checkbox]:checked").forEach(cb => {
+        const col = cb.dataset.col;
+        if (!checked[col]) checked[col] = [];
+        checked[col].push(cb.dataset.val);
+      });
+
+      /* 아무것도 선택 안 했으면 안내 메시지 표시 후 종료 */
+      if (!Object.keys(checked).length) {
+        document.getElementById("meta").textContent = "체크박스를 하나 이상 선택해주세요.";
+        document.getElementById("result").innerHTML = "";
+        return;
+      }
+
+      /* OR 조건 필터링:
+         checked 객체의 항목 중 하나라도 해당 행의 값과 일치하면 포함 */
+      const filtered = allData.filter(row =>
+        Object.entries(checked).some(([col, vals]) =>
+          vals.includes(String(row[col] ?? ""))
+        )
+      );
+
+      renderTable(filtered, checked);
+    });
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ 초기화 버튼 클릭 이벤트 ]
+       모든 체크박스를 해제하고 결과 영역을 초기 상태로 되돌림
+    ═══════════════════════════════════════════════════════════════ */
+    document.getElementById("btnReset").addEventListener("click", () => {
+      document.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+      document.getElementById("meta").textContent = "필터를 선택하고 확인을 누르세요.";
+      document.getElementById("result").innerHTML = "";
+    });
+
+
+    /* ═══════════════════════════════════════════════════════════════
+       [ renderTable(data, checked) — 결과 테이블 렌더링 함수 ]
+       data    → 필터링된 데이터 배열
+       checked → 어떤 컬럼·값이 선택됐는지 담긴 객체
+                 (일치 항목에 .highlight CSS 클래스를 붙이는 데 사용)
+    ═══════════════════════════════════════════════════════════════ */
+    function renderTable(data, checked) {
+      const meta   = document.getElementById("meta");
+      const result = document.getElementById("result");
+
+      /* 결과가 없을 때 */
+      if (!data.length) {
+        meta.textContent = "일치하는 응답이 없습니다.";
+        result.innerHTML = `<p class="empty">😕 조건에 맞는 응답이 없어요</p>`;
+        return;
+      }
+
+      /* 결과 건수 표시 */
+      meta.textContent = `총 ${data.length}건 일치`;
+
+      const checkedCols = Object.keys(checked);
+
+      /* 테이블 HTML 문자열 조립 */
+      let html = "<table><thead><tr>";
+
+      /* 헤더 행: 전체 컬럼 이름 나열 */
+      headers.forEach(h => { html += `<th>${h}</th>`; });
+      html += "</tr></thead><tbody>";
+
+      /* 데이터 행: 각 셀이 필터 조건과 일치하면 highlight 클래스 추가 */
+      data.forEach(row => {
+        html += "<tr>";
+        headers.forEach(h => {
+          const val = String(row[h] ?? "");
+          /* 선택된 컬럼이고, 선택된 값과 일치하면 강조 */
+          const isMatch = checkedCols.includes(h) && checked[h].includes(val);
+          html += `<td class="${isMatch ? "highlight" : ""}">${val}</td>`;
+        });
+        html += "</tr>";
+      });
+
+      html += "</tbody></table>";
+      result.innerHTML = html; /* 결과 영역에 테이블 삽입 */
+    }
+  </script>
+</body>
+</html>
