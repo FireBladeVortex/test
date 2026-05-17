@@ -1,12 +1,317 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>몬스터 도감</title>
+  <style>
+
+    /* ─────────────────────────────────────────
+       [ 전체 페이지 기본 설정 ]
+       배경색 → background: #fff; 를 원하는 색으로 변경
+       글꼴 → font-family 수정
+    ───────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #fff;           /* ← 페이지 배경색 */
+      min-height: 100vh;
+    }
+
+
+    /* ─────────────────────────────────────────
+       [ 화살표(토글) 버튼 ]
+       위치: 오른쪽 상단 고정 (top, right 값으로 조정)
+       크기: width / height 변경
+       배경색: background 변경
+       모양: border-radius — 위쪽을 반원으로, 아래를 더 둥글게 함
+    ───────────────────────────────────────── */
+    .scroll-btn {
+      position: fixed;          /* 화면에 고정 */
+      top: 16px;                /* ← 위에서 거리 */
+      right: 16px;              /* ← 오른쪽에서 거리 */
+      width: 56px;              /* ← 버튼 너비 */
+      height: 56px;             /* ← 버튼 높이 */
+      background: #111;         /* ← 버튼 배경색 */
+      border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; /* ← 방패 모양 */
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: transform 0.2s;
+    }
+    .scroll-btn:hover { transform: scale(1.08); }
+    .scroll-btn svg {
+      width: 26px;              /* ← 화살표 아이콘 크기 */
+      height: 26px;
+      fill: white;              /* ← 화살표 색 */
+    }
+
+
+    /* ─────────────────────────────────────────
+       [ 필터 패널 전체 박스 ]
+       위치: 오른쪽 상단 고정, top / right 으로 이동
+       크기: width 변경
+       색: background 변경
+       모양: border-radius 변경
+       패널이 닫힐 때 max-height: 0 / 열릴 때 max-height: 520px
+    ───────────────────────────────────────── */
+    .filter-panel {
+      position: fixed;
+      top: 82px;                /* ← 버튼 아래 여백 */
+      right: 16px;              /* ← 오른쪽에서 거리 */
+      width: 480px;             /* ← 패널 너비 */
+      background: #e8e8e8;      /* ← 패널 배경색 */
+      border: 1.5px solid #ccc; /* ← 테두리 색 / 두께 */
+      border-radius: 20px;      /* ← 모서리 둥글기 */
+      padding: 24px 28px 20px;
+      z-index: 99;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      /* 열릴 때 / 닫힐 때 애니메이션 속도 */
+      transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1),
+                  opacity 0.4s ease,
+                  padding 0.4s ease;
+    }
+    .filter-panel.open {
+      max-height: 520px;        /* ← 열렸을 때 최대 높이 (내용이 잘리면 늘리세요) */
+      opacity: 1;
+    }
+    .filter-panel.closed {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+
+    /* ─────────────────────────────────────────
+       [ 각 행 (카테고리 한 줄) ]
+       gap: 버튼 사이 간격
+       margin-bottom: 행 사이 간격
+    ───────────────────────────────────────── */
+    .row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;                 /* ← 버튼 사이 가로 간격 */
+      margin-bottom: 10px;      /* ← 행 사이 세로 간격 */
+      flex-wrap: wrap;
+    }
+
+
+    /* ─────────────────────────────────────────
+       [ 카테고리 라벨 (형태, 이동, 환경...) ]
+       color: 글자색
+       font-size: 글자 크기
+       min-width: 라벨 최소 너비 (늘리면 버튼이 더 오른쪽으로 밀림)
+    ───────────────────────────────────────── */
+    .row-label {
+      font-size: 13px;          /* ← 라벨 글자 크기 */
+      color: #555;              /* ← 라벨 글자색 */
+      min-width: 32px;          /* ← 라벨 최소 너비 */
+      padding-top: 8px;
+      flex-shrink: 0;
+    }
+
+
+    /* ─────────────────────────────────────────
+       [ 태그 버튼 (유기체, 보행, 지상...) ]
+       background: 기본 배경색 (off 상태)
+       border: 테두리 색 / 두께
+       border-radius: 모서리 둥글기
+       padding: 안쪽 여백 (위아래 / 좌우)
+       font-size: 글자 크기
+       color: 글자색
+    ───────────────────────────────────────── */
+    .tag-btn {
+      background: #f5f5f5;      /* ← off 상태 배경색 */
+      border: 1.5px solid #bbb; /* ← off 상태 테두리 */
+      border-radius: 8px;       /* ← 모서리 둥글기 */
+      padding: 6px 14px;        /* ← 위아래 6px / 좌우 14px */
+      font-size: 13px;          /* ← 버튼 글자 크기 */
+      color: #333;              /* ← off 상태 글자색 */
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      line-height: 1.4;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    /* [ 태그 버튼 — ON 상태 ]
+       클릭하면 이 스타일로 바뀜
+       background: on 상태 배경색
+       color: on 상태 글자색
+       border-color: on 상태 테두리색 */
+    .tag-btn.active {
+      background: #333;         /* ← on 상태 배경색 */
+      color: #fff;              /* ← on 상태 글자색 */
+      border-color: #333;       /* ← on 상태 테두리색 */
+    }
+    .tag-btn:hover:not(.active) { background: #e0e0e0; }
+
+
+    /* ─────────────────────────────────────────
+       [ 하단 초기화 / 검색 버튼 영역 ]
+       justify-content: flex-end → 오른쪽 정렬
+       flex-start로 바꾸면 왼쪽 정렬
+    ───────────────────────────────────────── */
+    .bottom-row {
+      display: flex;
+      justify-content: flex-end; /* ← 버튼 정렬 방향 */
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    /* [ 초기화 버튼 ] */
+    .action-btn {
+      background: #f5f5f5;      /* ← 초기화 버튼 배경색 */
+      border: 1.5px solid #bbb;
+      border-radius: 8px;
+      padding: 8px 22px;
+      font-size: 14px;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .action-btn:hover { background: #e0e0e0; }
+
+    /* [ 검색 버튼 ] */
+    .action-btn.search {
+      background: #333;         /* ← 검색 버튼 배경색 */
+      color: #fff;              /* ← 검색 버튼 글자색 */
+      border-color: #333;
+    }
+    .action-btn.search:hover { background: #555; }
+
+  </style>
 </head>
 <body>
-    <h1>환영합니다!</h1>
-    <p>FireBladeVortex/test 저장소에 오셨습니다.</p>
+
+  <!-- ─────────────────────────────────────────
+       [ 화살표 버튼 ]
+       클릭 시 필터 패널이 열리고 닫힘
+       화살표 방향은 JS에서 자동 전환
+  ───────────────────────────────────────── -->
+  <button class="scroll-btn" id="toggleBtn" aria-label="필터 열기/닫기" onclick="togglePanel()">
+    <svg id="arrowIcon" viewBox="0 0 24 24">
+      <!-- 아래 화살표 (패널 닫힌 상태) -->
+      <path d="M12 16l-6-6h12z"/>
+    </svg>
+  </button>
+
+
+  <!-- ─────────────────────────────────────────
+       [ 필터 패널 ]
+       처음엔 "closed" 클래스로 숨겨진 상태
+       togglePanel() 호출 시 "open" 클래스로 전환
+  ───────────────────────────────────────── -->
+  <div class="filter-panel closed" id="filterPanel">
+
+    <!-- 형태 행 -->
+    <div class="row">
+      <span class="row-label">형태</span>
+      <!-- 각 버튼은 클릭 시 toggle() 함수로 on/off 전환 -->
+      <button class="tag-btn" onclick="toggle(this)">유기체</button>
+      <button class="tag-btn" onclick="toggle(this)">무기체</button>
+      <button class="tag-btn" onclick="toggle(this)">영체</button>
+    </div>
+
+    <!-- 이동 행 -->
+    <div class="row">
+      <span class="row-label">이동</span>
+      <button class="tag-btn" onclick="toggle(this)">보행</button>
+      <button class="tag-btn" onclick="toggle(this)">비행</button>
+      <button class="tag-btn" onclick="toggle(this)">굴착</button>
+      <button class="tag-btn" onclick="toggle(this)">부유</button>
+      <button class="tag-btn" onclick="toggle(this)">순간이동</button>
+    </div>
+
+    <!-- 환경 행 -->
+    <div class="row">
+      <span class="row-label">환경</span>
+      <button class="tag-btn" onclick="toggle(this)">지상</button>
+      <button class="tag-btn" onclick="toggle(this)">공중</button>
+      <button class="tag-btn" onclick="toggle(this)">지하</button>
+      <button class="tag-btn" onclick="toggle(this)">우주</button>
+    </div>
+
+    <!-- 지능 행 -->
+    <div class="row">
+      <span class="row-label">지능</span>
+      <button class="tag-btn" onclick="toggle(this)">짐승</button>
+      <button class="tag-btn" onclick="toggle(this)">인간</button>
+    </div>
+
+    <!-- 성향 행 -->
+    <div class="row">
+      <span class="row-label">성향</span>
+      <button class="tag-btn" onclick="toggle(this)">인간 좋아</button>
+      <button class="tag-btn" onclick="toggle(this)">인간 맛있어</button>
+      <button class="tag-btn" onclick="toggle(this)">인간 무서워</button>
+      <button class="tag-btn" onclick="toggle(this)">인간 싫어</button>
+      <button class="tag-btn" onclick="toggle(this)">인간 죽여</button>
+    </div>
+
+    <!-- 하단 버튼 -->
+    <div class="bottom-row">
+      <button class="action-btn" onclick="resetAll()">초기화</button>
+      <button class="action-btn search" onclick="doSearch()">검색</button>
+    </div>
+
+  </div>
+
+
+  <script>
+    var isOpen = false; // 패널 열림 상태 추적
+
+    // ─── 패널 열기 / 닫기 ───────────────────
+    function togglePanel() {
+      var panel = document.getElementById('filterPanel');
+      var icon  = document.getElementById('arrowIcon');
+      isOpen = !isOpen;
+
+      if (isOpen) {
+        panel.classList.remove('closed');
+        panel.classList.add('open');
+        // 위 화살표로 전환
+        icon.innerHTML = '<path d="M12 8l6 6H6z"/>';
+      } else {
+        panel.classList.remove('open');
+        panel.classList.add('closed');
+        // 아래 화살표로 전환
+        icon.innerHTML = '<path d="M12 16l-6-6h12z"/>';
+      }
+    }
+
+    // ─── 태그 버튼 ON / OFF 전환 ───────────
+    function toggle(btn) {
+      btn.classList.toggle('active');
+      // active 클래스가 붙으면 ON (어두운 색)
+      // active 클래스가 빠지면 OFF (밝은 색)
+    }
+
+    // ─── 초기화: 모든 버튼을 OFF 로 ───────
+    function resetAll() {
+      document.querySelectorAll('.tag-btn.active').forEach(function(b) {
+        b.classList.remove('active');
+      });
+    }
+
+    // ─── 검색: 선택된 항목 수집 ────────────
+    // 현재는 콘솔에 출력 — 실제 검색 로직으로 교체하세요
+    function doSearch() {
+      var selected = [];
+      document.querySelectorAll('.tag-btn.active').forEach(function(b) {
+        selected.push(b.textContent.trim());
+      });
+      console.log('검색 조건:', selected);
+      // 예) fetch('/api/monsters?tags=' + selected.join(','))
+      alert('선택된 필터: ' + (selected.length ? selected.join(', ') : '없음'));
+    }
+  </script>
+
 </body>
 </html>
