@@ -14,7 +14,7 @@
 	* { box-sizing: border-box; margin: 0; padding: 0; }
 	body {
 		font-family: sans-serif;
-		background: #fff;					/* ← 페이지 배경색 */
+		background: #ffffff;					/* ← 페이지 배경색 */
 		min-height: 100vh;
 	}
 
@@ -29,12 +29,12 @@
 	───────────────────────────────────────── */
 	.scroll-btn {
       position: fixed;						/* 화면에 고정 */
-		top: 16px;							/* ← 위에서 거리 */
-		right: 16px;						/* ← 오른쪽에서 거리 */
-		width: 56px;						/* ← 버튼 너비 */
-		height: 56px;						/* ← 버튼 높이 */
-		background: #111;					/* ← 버튼 배경색 */
-		border-radius: 50% 50% 50% 50% / 20% 20% 70% 70%; /* ← 방패 모양 */
+		top: 0px;							/* ← 위에서 거리 */
+		right: 100px;						/* ← 오른쪽에서 거리 */
+		width: 100px;						/* ← 버튼 너비 */
+		height: 100px;						/* ← 버튼 높이 */
+		background: #000000;					/* ← 버튼 배경색 */
+		border-radius: 0% 0% 50% 50% / 0% 0% 50% 50%; /* ← 방패 모양 */
 		border: none;
 		cursor: pointer;
 		display: flex;
@@ -45,8 +45,8 @@
 	}
 	.scroll-btn:hover { transform: scale(1.08); }
 	.scroll-btn svg {
-		width: 26px;						/* ← 화살표 아이콘 크기 */
-		height: 26px;
+		width: 100px;						/* ← 화살표 아이콘 크기 */
+		height: 100px;
 		fill: white;						/* ← 화살표 색 */
 	}
 
@@ -63,12 +63,12 @@
 	───────────────────────────────────────── */
 	.filter-panel {
 		position: fixed;
-		top: 82px;							/* ← 버튼 아래 여백 */
-		right: 16px;						/* ← 오른쪽에서 거리 */
-		width: 480px;						/* ← 패널 너비 */
+		top: 100px;							/* ← 버튼 아래 여백 */
+		right: 10px;						/* ← 오른쪽에서 거리 */
+		width: 550px;						/* ← 패널 너비 */
 		background: #e8e8e8;				/* ← 패널 배경색 */
 		border: 1.5px solid #ccc;			/* ← 테두리 색 / 두께 */
-		border-radius: 20px;				/* ← 모서리 둥글기 */
+		border-radius: 25px;				/* ← 모서리 둥글기 */
 		padding: 24px 28px 20px;
 		z-index: 99;
 		overflow: hidden;
@@ -80,7 +80,7 @@
 			padding 0.4s ease;
 	}
 	.filter-panel.open {
-		max-height: 520px;					/* ← 열렸을 때 최대 높이 (내용이 잘리면 늘리세요) */
+		max-height: 500px;					/* ← 열렸을 때 최대 높이 (내용이 잘리면 늘리세요) */
 		opacity: 1;
 	}
 	.filter-panel.closed {
@@ -97,7 +97,7 @@
 	.row {
 		display: flex;
 		align-items: flex-start;
-		gap: 8px;						/* ← 버튼 사이 가로 간격 */
+		gap: 10px;						/* ← 버튼 사이 가로 간격 */
 		margin-bottom: 10px;			/* ← 행 사이 세로 간격 */
 		flex-wrap: wrap;
 	}
@@ -108,9 +108,9 @@
 		min-width: 라벨 최소 너비 (늘리면 버튼이 더 오른쪽으로 밀림)
 	───────────────────────────────────────── */
 	.row-label {
-		font-size: 13px;				/* ← 라벨 글자 크기 */
+		font-size: 15px;				/* ← 라벨 글자 크기 */
 		color: #555;					/* ← 라벨 글자색 */
-		min-width: 32px;				/* ← 라벨 최소 너비 */
+		min-width: 30px;				/* ← 라벨 최소 너비 */
 		padding-top: 8px;
 		flex-shrink: 0;
 	}
@@ -126,9 +126,9 @@
 	.tag-btn {
 		background: #f5f5f5;			/* ← off 배경색 */
 		border: 1.5px solid #bbb;		/* ← off 테두리 */
-		border-radius: 8px;				/* ← 모서리 둥글기 */
+		border-radius: 10px;				/* ← 모서리 둥글기 */
 		padding: 6px 14px;				/* ← 위아래 6px / 좌우 14px */
-		font-size: 13px;				/* ← 버튼 글자 크기 */
+		font-size: 14px;				/* ← 버튼 글자 크기 */
 		color: #333;					/* ← off 상태 글자색 */
 		cursor: pointer;
 		transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -156,15 +156,15 @@
 	.bottom-row {
 		display: flex;
 		justify-content: flex-end;		/* ← 버튼 정렬 방향 */
-		gap: 8px;
-		margin-top: 14px;
+		gap: 10px;
+		margin-top: 10px;
 	}
 
 	/* [ 초기화 버튼 ] */
 	.action-btn {
 		background: #f5f5f5;			/* ← 초기화 버튼 배경색 */
 		border: 1.5px solid #bbb;
-		border-radius: 8px;
+		border-radius: 10px;
 		padding: 8px 22px;
 		font-size: 14px;
 		color: #333;
