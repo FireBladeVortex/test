@@ -599,6 +599,12 @@
 		}
 	}
 
+	// ─── 태그 버튼 ON / OFF 전환 ───────────
+	function toggle(btn) {
+		btn.classList.toggle('active');
+		// active 클래스가 붙으면 ON (어두운 색)
+		// active 클래스가 빠지면 OFF (밝은 색)
+	}
 	// ─── 단일 선택: 같은 data-group 안에서 1개만 on ──────────────
 	// 1) 이미 active인 버튼 재클릭 → 선택 해제
 	// 2) 다른 버튼 클릭 → 같은 그룹 전체 off 후 해당 버튼만 on
@@ -607,8 +613,6 @@
 		var siblings = document.querySelectorAll('.tag-btn[data-group="' + group + '"]');
 
 		if (btn.classList.contains('active')) {
-		// active 클래스가 붙으면 ON (어두운 색)
-		// active 클래스가 빠지면 OFF (밝은 색)
 		btn.classList.remove('active'); // 재클릭 시 해제
 		} else {
 		siblings.forEach(function(b) { b.classList.remove('active'); }); // 그룹 전체 off
