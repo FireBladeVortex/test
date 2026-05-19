@@ -1,327 +1,1013 @@
 <!DOCTYPE html>
+<!-- 문서 타입 선언: 이 파일이 HTML5 문서임을 브라우저에게 알림 -->
 <html lang="ko">
+<!-- lang="ko": 문서 언어를 한국어로 지정. 스크린리더, 검색엔진 등에서 언어 인식에 사용 -->
 <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>몬스터 도감</title>
-	<style>
+  <meta charset="UTF-8" />
+  <!-- charset="UTF-8": 한글 등 다국어 문자가 깨지지 않도록 인코딩 방식을 지정 -->
 
-	/* ─────────────────────────────────────────
-		[ 전체 페이지 기본 설정 ]
-		배경색 → background: #fff; 를 원하는 색으로 변경
-		글꼴 → font-family 수정
-	───────────────────────────────────────── */
-	* { box-sizing: border-box; margin: 0; padding: 0; }
-	body {
-		font-family: sans-serif;
-		background: #ffffff;					/* ← 페이지 배경색 */
-		min-height: 100vh;
-	}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport 설정: 모바일 기기에서 화면 너비를 기기 너비에 맞추고 초기 확대/축소를 1.0(기본값)으로 고정 -->
+  <!-- 이 태그가 없으면 모바일에서 PC용 레이아웃이 축소되어 작게 보임 -->
 
+  <title>몬스터 도감</title>
+  <!-- title: 브라우저 탭과 즐겨찾기에 표시되는 페이지 이름 -->
 
-	/* ─────────────────────────────────────────
-		[ 화살표(토글) 버튼 ]
-		위치: 오른쪽 상단 고정 (top, right 값으로 조정)
-		크기: width / height 변경
-		배경색: background 변경
-		모양: border-radius — 위쪽을 반원으로, 아래를 더 둥글게 함
+  <!--
+  ══════════════════════════════════════════════════════════════
+  [ Google Fonts: Noto Serif KR ]
 
-	───────────────────────────────────────── */
-	.scroll-btn {
-      position: fixed;						/* 화면에 고정 */
-		top: 0px;							/* ← 위에서 거리 */
-		right: 50px;						/* ← 오른쪽에서 거리 */
-		width: 100px;						/* ← 버튼 너비 */
-		height: 100px;						/* ← 버튼 높이 */
-		background: #000000;					/* ← 버튼 배경색 */
-		border-radius: 0% 0% 50% 50% / 0% 0% 50% 50%; /* ← 방패 모양 */
-		border: none;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 100;
-		transition: transform 0.3s;
-	}
-	.scroll-btn:hover { transform: scale(1.08); }
-	.scroll-btn svg {
-		width: 100px;						/* ← 화살표 아이콘 크기 */
-		height: 100px;
-		fill: white;						/* ← 화살표 색 */
-	}
+  ▸ 역할: 구글 서버에서 "Noto Serif KR" 한국어 세리프(명조) 폰트를 불러옴.
+    세리프 폰트는 글자 끝에 작은 장식선이 있는 스타일로, 오래된 책·문서 느낌에 적합.
+    이 사이트의 네크로노미콘(고서적) 분위기와 잘 어울리기 때문에 적용됨.
 
+  ▸ 단순 폰트 변경인가?: YES. 순수하게 시각적 폰트 교체 기능만 함.
+    기능(버튼 동작, 화면 전환 등)에는 전혀 영향을 주지 않음.
 
-	/* ─────────────────────────────────────────
-		[ 필터 패널 전체 박스 ]
-		위치: 오른쪽 상단 고정, top / right 으로 이동
-		크기: width 변경
-		배경색: background 변경
-		모양: border-radius 변경
-		패널이 닫힐 때 max-height: 0 / 열릴 때 max-height: 520px
-		열렸을 때 높이: .open의 max-height 변경
-																		
-	───────────────────────────────────────── */
-	.filter-panel {
-		position: fixed;
-		top: 10px;							/* ← 버튼 아래 여백 */
-		right: 10px;						/* ← 오른쪽에서 거리 */
-		width: 600px;						/* ← 패널 너비 */
-		background: #e8e8e8;				/* ← 패널 배경색 */
-		border: 1.5px solid #ccc;			/* ← 테두리 색 / 두께 */
-		border-radius: 25px;				/* ← 모서리 둥글기 */
-		padding: 24px 28px 20px;
-		z-index: 99;
-		overflow: hidden;
-		max-height: 0;
-		opacity: 0;
-		/* 열릴 때 / 닫힐 때 애니메이션 속도 */
-		transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1),
-			opacity 0.4s ease,
-			padding 0.4s ease;
-	}
-	.filter-panel.open {
-		max-height: 500px;					/* ← 열렸을 때 최대 높이 (내용이 잘리면 늘리세요) */
-		opacity: 1;
-	}
-	.filter-panel.closed {
-		max-height: 0;
-		opacity: 0;
-		padding-top: 0;
-		padding-bottom: 0;
-	}
-	/* ─────────────────────────────────────────
-		[ 각 행 (카테고리 한 줄) ]
-		gap: 버튼 사이 간격
-		margin-bottom: 행 사이 간격
-	───────────────────────────────────────── */
-	.row {
-		display: flex;
-		align-items: flex-start;
-		gap: 10px;						/* ← 버튼 사이 가로 간격 */
-		margin-bottom: 10px;			/* ← 행 사이 세로 간격 */
-		flex-wrap: wrap;
-	}
-	/* ─────────────────────────────────────────
-		[ 카테고리 라벨 (형태, 이동, 환경...) ]
-		font-size: 글자 크기
-		color: 글자색
-		min-width: 라벨 최소 너비 (늘리면 버튼이 더 오른쪽으로 밀림)
-	───────────────────────────────────────── */
-	.row-label {
-		font-size: 15px;				/* ← 라벨 글자 크기 */
-		color: #555;					/* ← 라벨 글자색 */
-		min-width: 30px;				/* ← 라벨 최소 너비 */
-		padding-top: 8px;
-		flex-shrink: 0;
-	}
-	/* ─────────────────────────────────────────
-		[ 태그 버튼 (유기체, 보행, 지상...) ]
-		background: 기본 배경색 (off 상태)
-		border: 테두리 색 / 두께
-		border-radius: 모서리 둥글기
-		padding: 안쪽 여백 (위아래 / 좌우)
-		font-size: 글자 크기
-		color: 글자색
-	───────────────────────────────────────── */
-	.tag-btn {
-		background: #f5f5f5;			/* ← off 배경색 */
-		border: 1.5px solid #bbb;		/* ← off 테두리 */
-		border-radius: 10px;				/* ← 모서리 둥글기 */
-		padding: 6px 14px;				/* ← 위아래 6px / 좌우 14px */
-		font-size: 14px;				/* ← 버튼 글자 크기 */
-		color: #333;					/* ← off 상태 글자색 */
-		cursor: pointer;
-		transition: background 0.15s, color 0.15s, border-color 0.15s;
-		line-height: 1.4;
-		min-width: 48px;
-		text-align: center;
-	}
-	/* [ 태그 버튼 — ON 상태 ]
-		background: on 상태 배경색
-		color: on 상태 글자색
-		border-color: on 상태 테두리색 */
-	.tag-btn.active {
-		background: #333;				/* ← on 배경색 */
-		color: #fff;					/* ← on 글자색 */
-		border-color: #333;				/* ← on 테두리색 */
-	}
-	.tag-btn:hover:not(.active) { background: #e0e0e0; }
+  ▸ 주석 처리 시 영향:
+    - CSS의 font-family: 'Noto Serif KR', serif; 에서 'Noto Serif KR' 부분이 무시되고
+      브라우저 기본 세리프 폰트(Windows: 바탕체, Mac: Apple Myungjo 등)로 표시됨.
+    - 레이아웃은 유지되나 폰트가 달라 보임.
+
+  ▸ 주석 처리 방법:
+    아래 <link ...> 줄 앞에  <!--  를 붙이고 줄 끝에  - - >  를 붙이면 비활성화됨.
+    (HTML 주석: <!-- 내용 - - > 형태)
+  ══════════════════════════════════════════════════════════════
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+  <!-- ↑ 이 줄을 주석 처리하면 구글 폰트 로드가 비활성화됨.
+       비활성화 시 font-family의 후순위 값인 serif(브라우저 기본 명조체)로 대체됨. -->
+
+  <style>
+
+    /* ═══════════════════════════════════════════════════
+       [ 전역 CSS 변수 (Custom Properties) ]
+
+       CSS 변수는 "--이름: 값" 형태로 :root 안에 선언하면
+       페이지 전체 어디서든 var(--이름) 으로 재사용할 수 있음.
+       색상을 한 곳에서 통합 관리하므로 테마 변경이 쉬움.
+
+       --book-bg       : 책 표지/페이지 배경색 (크림/양피지 느낌)
+       --book-border   : 책 테두리색
+       --tag-off-bg    : 태그 버튼 OFF 상태 배경
+       --tag-off-text  : 태그 버튼 OFF 상태 글자색
+       --tag-off-border: 태그 버튼 OFF 상태 테두리색
+       --tag-on-bg     : 태그 버튼 ON 상태 배경 (색 반전)
+       --tag-on-text   : 태그 버튼 ON 상태 글자색 (색 반전)
+    ═══════════════════════════════════════════════════ */
+    :root {
+      --book-bg:        #fdf3d7;   /* ← 책 표지/페이지 배경색 */
+      --book-border:    #555;      /* ← 책 테두리색 */
+      --tag-off-bg:     #ede8d4;   /* ← 버튼 OFF 배경색 */
+      --tag-off-text:   #3a3328;   /* ← 버튼 OFF 글자색 */
+      --tag-off-border: #9e9070;   /* ← 버튼 OFF 테두리색 */
+      --tag-on-bg:      #2c2620;   /* ← 버튼 ON 배경색 (색반전: 어두운 계열) */
+      --tag-on-text:    #fdf3d7;   /* ← 버튼 ON 글자색 (색반전: 밝은 계열) */
+    }
+
+    /* ── 전체 요소 초기화 ──
+       * : 페이지의 모든 HTML 요소에 적용되는 스타일
+       box-sizing: border-box → width/height 계산에 padding과 border가 포함됨
+                                (기본값 content-box는 포함 안 됨)
+       margin: 0; padding: 0  → 브라우저마다 다른 기본 여백을 제거해 통일
+    ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── 페이지 전체 배경 및 중앙 정렬 ── */
+    body {
+      background: #1a1510;       /* ← 페이지 배경색 (어두운 색) */
+      min-height: 100vh;         /* 뷰포트 높이 100% 이상 확보 (콘텐츠가 짧아도 배경이 꽉 참) */
+      display: flex;             /* 자식 요소(화면)를 플렉스 컨테이너로 배치 */
+      align-items: center;       /* 세로 가운데 정렬 */
+      justify-content: center;   /* 가로 가운데 정렬 */
+      overflow: hidden;          /* 화면 밖으로 튀어나오는 내용 숨김 */
+      font-family: 'Noto Serif KR', serif;
+      /* ↑ 전체 폰트 지정. 'Noto Serif KR'이 없으면(폰트 link 주석 처리 시) serif(브라우저 기본 명조체)로 대체 */
+    }
 
 
-	/* ─────────────────────────────────────────
-		[ 하단 초기화 / 검색 버튼 영역 ]
-		justify-content: flex-end → 오른쪽 정렬
-		flex-start로 바꾸면 왼쪽 정렬
-	───────────────────────────────────────── */
-	.bottom-row {
-		display: flex;
-		justify-content: flex-end;		/* ← 버튼 정렬 방향 */
-		gap: 10px;
-		margin-top: 10px;
-	}
+    /* ═══════════════════════════════════════════════════
+       [ 화면 레이어 관리 ]
 
-	/* [ 초기화 버튼 ] */
-	.action-btn {
-		background: #f5f5f5;			/* ← 초기화 버튼 배경색 */
-		border: 1.5px solid #bbb;
-		border-radius: 10px;
-		padding: 8px 22px;
-		font-size: 14px;
-		color: #333;
-		cursor: pointer;
-		transition: background 0.15s;
-	}
-	.action-btn:hover { background: #e0e0e0; }
+       .screen : 각 화면(인트로 / 펼친 / 접은)을 감싸는 컨테이너.
+                 기본값은 display:none (숨김).
+       .screen.active : JS에서 이 클래스를 붙이면 display:flex로 보임.
+       화면 전환은 showScreen() 함수에서 모든 .screen의 active를 제거한 뒤
+       원하는 화면에만 active를 다시 붙이는 방식으로 동작.
+    ═══════════════════════════════════════════════════ */
+    .screen {
+      display: none;             /* 기본: 숨김 상태 */
+      width: 100vw;              /* 뷰포트 전체 너비 */
+      height: 100vh;             /* 뷰포트 전체 높이 */
+      align-items: center;       /* 세로 가운데 정렬 (display:flex일 때만 적용) */
+      justify-content: center;   /* 가로 가운데 정렬 */
+    }
+    .screen.active { display: flex; } /* active 클래스가 붙은 화면만 표시 */
 
-	/* [ 검색 버튼 ] */
-	.action-btn.search {
-		background: #333;				/* ← 검색 버튼 배경색 */
-		color: #fff;					/* ← 검색 버튼 글자색 */
-		border-color: #333;
-	}
-	.action-btn.search:hover { background: #555; }
 
-	</style>
+    /* ╔═══════════════════════════════════════════════╗
+       ║  [인트로 화면]  #screen-intro                 ║
+       ╚═══════════════════════════════════════════════╝ */
+
+    /* ── 책 겉표지 전체 박스 ──
+       position: relative → 내부의 absolute 요소(눈 컨테이너)의 기준점이 됨
+       overflow: hidden   → 책 테두리 밖으로 눈 SVG가 삐져나오는 것을 방지
+       cursor: pointer    → 마우스를 올리면 손 모양 커서로 바뀌어 클릭 가능함을 안내
+    ── */
+    #intro-book {
+      position: relative;
+      width: 420px;              /* ← 책 너비 */
+      height: 520px;             /* ← 책 높이 */
+      background: var(--book-bg);
+      border: 2px solid var(--book-border); /* ← 테두리 두께/색 */
+      border-radius: 28px;       /* ← 모서리 둥글기 */
+      cursor: pointer;
+      overflow: hidden;
+
+      /* 책 왼쪽 제본 그림자 느낌
+         inset: 내부 그림자 (바깥이 아닌 안쪽에 그림자를 넣음)
+         6px 0 → 왼쪽 방향(x=6px, y=0)으로 퍼짐 */
+      box-shadow:
+        inset 6px 0 18px rgba(0,0,0,0.18),  /* ← 책등 그림자 강도 (0~1 사이 숫자로 조정) */
+        0 8px 40px rgba(0,0,0,0.7);          /* ← 외부 그림자 (퍼짐 범위: 40px, 불투명도: 0.7) */
+    }
+
+    /* ── 책 표지 제본선(왼쪽 세로선) ──
+       ::before : 실제 HTML 태그 없이 CSS로 만드는 가상 요소.
+                  content:'' 가 필수이며, 이것이 없으면 표시되지 않음.
+       position: absolute → #intro-book(position:relative) 기준으로 위치 지정
+       pointer-events: none → 마우스 이벤트를 무시 (클릭이 뒤쪽 요소에 전달됨)
+    ── */
+    #intro-book::before {
+      content: '';               /* 가상 요소 필수값 (비워도 되지만 선언해야 표시됨) */
+      position: absolute;
+      left: 28px;                /* ← 제본선 위치(왼쪽에서 거리) */
+      top: 0; bottom: 0;         /* 위아래로 꽉 채움 */
+      width: 1.5px;              /* ← 제본선 두께 */
+      background: rgba(80,60,30,0.18); /* ← 제본선 색(투명도 포함). 마지막 숫자가 투명도(0~1) */
+      pointer-events: none;      /* 마우스 이벤트 차단 (클릭에 반응하지 않음) */
+    }
+
+
+    /* ════════════════════════════════════════════════════
+       [ 눈(eye) 컨테이너 및 단계별 표시 ]
+
+       ▸ 인트로 애니메이션의 핵심 구조:
+
+         [초기 상태]       opacity: 0          → 완전히 투명 (아무것도 안 보임)
+              ↓ 클릭
+         [1단계: 0~0.5초]  .show-lines 클래스  → opacity: 0.15
+                             눈꺼풀이 닫혀 있어 흰자/동공은 가려진 상태.
+                             타원 윤곽선(stroke)만 희미하게 보여 "직선 3개"처럼 보임.
+              ↓ 0.5초 후
+         [2단계: 0.5~1초]  .show-eyes 클래스   → opacity: 1 + openEyelids() 실행
+                             눈꺼풀이 위아래로 접히며 눈이 열림.
+              ↓ 1초 후
+         [화면 전환]       펼친 화면으로 이동
+
+       ▸ 직선이 먼저 보이는 원리:
+         - 눈꺼풀(lid-top, lid-bot) rect 요소가 눈 위에 책과 같은 색으로 덮여 있음.
+         - show-lines 단계에서는 opacity만 올리므로, 아직 눈꺼풀이 덮인 상태.
+         - 따라서 눈꺼풀 가장자리의 윤곽선(ellipse stroke)만 직선처럼 비쳐 보임.
+         - show-eyes 단계에서 눈꺼풀이 scaleY(0)으로 접히며 눈이 열림.
+    ════════════════════════════════════════════════════ */
+    #eye-container {
+      position: absolute;        /* #intro-book 기준으로 절대 위치 */
+      inset: 0;                  /* top:0, right:0, bottom:0, left:0 의 단축 표현. 부모를 꽉 채움 */
+      pointer-events: none;      /* 마우스 이벤트 무시 (책 클릭이 눈 위에서도 작동하도록) */
+      opacity: 0;                /* ← 초기: 완전히 투명 */
+      transition: opacity 0.5s ease; /* ← 투명도 변화 속도. 0.5s = 0.5초에 걸쳐 부드럽게 전환 */
+    }
+
+    /* 1단계: 직선처럼 보이는 상태
+       눈꺼풀이 아직 닫혀 눈알/동공은 가려져 있고,
+       눈 테두리 윤곽선(stroke)만 희미하게 비쳐 직선 3개처럼 보임 */
+    #eye-container.show-lines {
+      opacity: 0.15;             /* ← 직선이 보이는 투명도. 높일수록 진하게 보임 (0~1) */
+    }
+
+    /* 2단계: 눈이 완전히 열린 상태 */
+    #eye-container.show-eyes {
+      opacity: 1;                /* ← 완전 불투명. 눈꺼풀 열림 애니메이션도 이 시점에 실행됨 */
+    }
+
+    /* ── 눈 SVG 하나하나 ──
+       position: absolute → #eye-container(inset:0, 책 전체 크기) 기준으로 위치 지정
+    ── */
+    .eye-svg {
+      position: absolute;
+      width: 120px;              /* ← 눈 너비 */
+      height: 68px;              /* ← 눈 높이 */
+    }
+
+    /* ── 눈 1번 위치 및 기울기 ──
+       top/left: 퍼센트(%)로 지정하면 책 크기가 바뀌어도 비율 유지
+       transform: rotate() → 눈을 기울이는 각도. 양수=시계방향, 음수=반시계방향
+    ── */
+    .eye-svg:nth-child(1) {
+      top: 22%;                  /* ← 위에서 비율 */
+      left: 42%;                 /* ← 왼쪽에서 비율 */
+      transform: rotate(-14deg); /* ← 기울기 (음수 = 반시계 방향) */
+    }
+    /* ── 눈 2번 위치 및 기울기 ── */
+    .eye-svg:nth-child(2) {
+      top: 44%;                  /* ← 위에서 비율 */
+      left: 28%;                 /* ← 왼쪽에서 비율 */
+      transform: rotate(20deg);  /* ← 기울기 (양수 = 시계 방향) */
+    }
+    /* ── 눈 3번 위치 및 기울기 ── */
+    .eye-svg:nth-child(3) {
+      top: 62%;                  /* ← 위에서 비율 */
+      left: 52%;                 /* ← 왼쪽에서 비율 */
+      transform: rotate(-4deg);  /* ← 기울기 */
+    }
+
+    /* ── 눈꺼풀 rect 요소 공통 스타일 ──
+       눈꺼풀은 책 배경색과 동일한 색의 직사각형(rect)으로
+       눈알 위를 반씩 덮어 "눈이 감긴" 상태를 만듦.
+       JS의 openEyelids() 함수가 scaleY(0)으로 압축해 사라지게 하면 눈이 "열리는" 효과.
+
+       transform-origin: 접히는 방향의 기준점
+         - 위쪽 눈꺼풀(lid-top) → JS에서 'center top' 설정 → 위쪽 끝을 축으로 위로 접힘
+         - 아래쪽 눈꺼풀(lid-bot) → JS에서 'center bottom' 설정 → 아래쪽 끝을 축으로 아래로 접힘
+       transition: transform에 0.45초 전환을 걸어 부드럽게 열림
+    ── */
+    .eyelid-clip {
+      transform-origin: center;  /* JS에서 개별 재설정하므로 여기는 기본값만 */
+      transition: transform 0.45s ease; /* ← 눈꺼풀 열리는 속도 (0.45초) */
+    }
+
+
+    /* ╔═══════════════════════════════════════════════╗
+       ║  [펼친 화면]  #screen-open                    ║
+       ╚═══════════════════════════════════════════════╝ */
+
+    /* ── 책 펼친 전체 박스 ──
+       display: flex → 왼쪽 페이지와 오른쪽 페이지를 가로로 나란히 배치
+       position: relative → 책갈피 버튼(position:absolute)의 기준점이 됨
+    ── */
+    #open-book {
+      position: relative;
+      display: flex;             /* 자식 요소(.page-left, .page-right)를 가로 배치 */
+      width: 860px;              /* ← 펼친 책 전체 너비 */
+      height: 500px;             /* ← 펼친 책 높이 */
+      background: var(--book-bg);
+      border: 2px solid var(--book-border);
+      border-radius: 24px;       /* ← 모서리 둥글기 */
+      overflow: hidden;          /* 테두리 밖 내용 숨김 */
+      box-shadow: 0 8px 48px rgba(0,0,0,0.8); /* 외부 그림자 */
+    }
+
+    /* ── 책 가운데 제본선 ──
+       ::after : ::before 와 같은 가상 요소. 하나의 요소에 ::before, ::after 둘 다 사용 가능.
+       left: 50% → 책 정가운데에 세로선 배치
+    ── */
+    #open-book::after {
+      content: '';
+      position: absolute;
+      left: 50%;                 /* 가운데 위치 */
+      top: 0; bottom: 0;         /* 위아래로 꽉 채움 */
+      width: 2px;                /* ← 가운데 제본선 두께 */
+      background: rgba(80,60,30,0.25); /* ← 제본선 색 */
+      pointer-events: none;      /* 마우스 이벤트 차단 */
+    }
+
+    /* ── 왼쪽 페이지 ──
+       width: 50% → 책 너비의 절반을 차지
+       overflow-y: auto → 내용이 많아지면 세로 스크롤 생성
+    ── */
+    .page-left {
+      width: 50%;
+      padding: 32px 28px 24px 36px; /* ← 안쪽 여백: 위/오른/아래/왼 */
+      display: flex;
+      flex-direction: column;    /* 자식 요소(카테고리)를 세로로 쌓음 */
+      gap: 14px;                 /* ← 카테고리 행 사이 간격 */
+      overflow-y: auto;          /* 내용 넘치면 스크롤 생성 */
+    }
+
+    /* ── 오른쪽 페이지 ──
+       왼쪽 페이지와 동일한 구조, padding 좌우만 반전
+    ── */
+    .page-right {
+      width: 50%;
+      padding: 32px 36px 24px 28px; /* ← 안쪽 여백: 위/오른/아래/왼 */
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    /* ── 책갈피 버튼 ──
+       position: absolute → #open-book(position:relative) 기준으로 위치 고정
+       clip-path: polygon() → 아래가 뾰족한 책갈피 모양을 만드는 CSS 클리핑
+         polygon(좌상, 우상, 우하, 중하(뾰족점), 좌하) 순서로 꼭짓점 좌표 지정
+         예: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)
+             → 상단은 직선, 하단 중앙만 뾰족
+       z-index: 10 → 다른 요소 위에 표시 (숫자가 클수록 앞에 나옴)
+    ── */
+    .bookmark-btn {
+      position: absolute;
+      top: -4px;                 /* ← 위에서 위치 (음수면 책 위로 튀어나옴) */
+      right: 60px;               /* ← 오른쪽에서 거리 */
+      width: 52px;               /* ← 책갈피 너비 */
+      height: 64px;              /* ← 책갈피 높이 */
+      background: #2c2620;       /* ← 책갈피 색 */
+      border: none;              /* 기본 버튼 테두리 제거 */
+      cursor: pointer;
+      display: flex;
+      align-items: center;       /* 화살표 아이콘 세로 가운데 정렬 */
+      justify-content: center;   /* 화살표 아이콘 가로 가운데 정렬 */
+      z-index: 10;               /* 페이지 콘텐츠 위에 표시 */
+
+      /* 아래가 뾰족한 책갈피 모양 */
+      clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+      /* ↑ 모양 변경: polygon(좌상, 우상, 우하, 중하(뾰족점), 좌하) */
+
+      transition: transform 0.15s; /* 호버 시 위치 이동에 부드러운 전환 추가 */
+    }
+    /* 호버 시 아래로 2px 이동: 책갈피를 누르는 느낌 */
+    .bookmark-btn:hover { transform: translateY(2px); } /* ← 호버시 살짝 내려가는 거리 */
+    .bookmark-btn svg {
+      width: 22px;               /* ← 화살표 아이콘 크기 */
+      height: 22px;
+      fill: #fdf3d7;             /* ← 화살표 색 */
+      margin-top: -6px;          /* ← 뾰족한 부분 고려해 아이콘을 위로 올림. 양수면 아래로 내려감 */
+    }
+
+
+    /* ── 카테고리 섹션 (대분류 라벨 + 소분류 버튼 한 묶음) ──
+       flex-direction: column → 라벨이 위, 버튼 묶음이 아래로 배치
+    ── */
+    .category {
+      display: flex;
+      flex-direction: column;    /* 대분류 라벨과 버튼 묶음을 세로 배치 */
+      gap: 6px;                  /* ← 라벨과 버튼 사이 간격 */
+    }
+
+    /* ── 대분류 라벨 (형태, 이동, 환경...) ──
+       letter-spacing: 글자 사이 간격. 값이 클수록 넓어짐
+       border-bottom: 라벨 아래에 구분선을 그어 소분류와 시각적으로 구분
+    ── */
+    .cat-label {
+      font-size: 13px;           /* ← 대분류 글자 크기 */
+      font-weight: 700;          /* 굵게 (700 = bold) */
+      color: #5a4e3a;            /* ← 대분류 글자색 */
+      letter-spacing: 0.05em;    /* ← 글자 사이 간격 (em은 현재 폰트 크기 기준 단위) */
+      border-bottom: 1px solid rgba(90,78,58,0.25); /* ← 라벨 아래 구분선 색/두께 */
+      padding-bottom: 3px;       /* 구분선과 글자 사이 여백 */
+    }
+
+    /* ── 소분류 버튼 묶음 ──
+       flex-wrap: wrap → 버튼이 가로 공간을 넘으면 자동으로 다음 줄로 내려감
+    ── */
+    .cat-tags {
+      display: flex;
+      flex-wrap: wrap;           /* 버튼이 많을 때 자동 줄바꿈 */
+      gap: 7px;                  /* ← 버튼 사이 간격 */
+    }
+
+    /* ── 소분류 태그 버튼 (OFF 상태) ──
+       user-select: none → 버튼 텍스트가 마우스 드래그로 선택되지 않음 (UX 개선)
+       transition → 배경/글자/테두리 색 변화에 0.15초 전환 효과 추가
+    ── */
+    .tag-btn {
+      background: var(--tag-off-bg);             /* OFF 상태 배경색 */
+      border: 1.5px solid var(--tag-off-border); /* OFF 상태 테두리 */
+      border-radius: 6px;        /* ← 버튼 모서리 둥글기 */
+      padding: 5px 13px;         /* ← 버튼 안쪽 여백 (위아래 5px / 좌우 13px) */
+      font-size: 12px;           /* ← 버튼 글자 크기 */
+      font-family: 'Noto Serif KR', serif; /* 버튼도 동일한 폰트 적용 */
+      color: var(--tag-off-text);            /* OFF 상태 글자색 */
+      cursor: pointer;           /* 마우스 올리면 손가락 커서 */
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      /* ↑ 클릭/호버 시 배경·글자·테두리 색이 0.15초에 걸쳐 부드럽게 변함 */
+      line-height: 1.5;          /* 줄 높이 (글자 크기의 1.5배). 세로 여백 확보 */
+      min-width: 44px;           /* 버튼 최소 너비 (한 글자짜리 버튼이 너무 작아지지 않게) */
+      text-align: center;        /* 텍스트 가운데 정렬 */
+      user-select: none;         /* 드래그로 텍스트 선택 방지 */
+    }
+
+    /* ── 소분류 태그 버튼 (ON 상태 = 색 반전) ──
+       .active 클래스가 붙으면 배경/글자/테두리가 반전되어 "선택됨" 상태를 표시
+    ── */
+    .tag-btn.active {
+      background: var(--tag-on-bg);    /* ← ON: 어두운 배경 (색 반전) */
+      color: var(--tag-on-text);       /* ← ON: 밝은 글자 (색 반전) */
+      border-color: var(--tag-on-bg);  /* 테두리도 배경색과 동일하게 */
+    }
+    /* ── 호버 상태 (active가 아닐 때만 적용) ──
+       :hover:not(.active) → ON 상태 버튼은 호버 효과 적용 안 함
+    ── */
+    .tag-btn:hover:not(.active) {
+      background: #d9cfb0;             /* ← 호버 배경색 */
+    }
+
+
+    /* ── 하단 버튼 영역 (초기화, 검색) ──
+       margin-top: auto → 페이지 내 남은 공간을 모두 위쪽 여백으로 사용해
+                          버튼 영역이 페이지 맨 아래에 붙도록 밀어냄
+    ── */
+    .bottom-actions {
+      display: flex;
+      justify-content: flex-end;  /* ← 오른쪽 정렬. flex-start로 바꾸면 왼쪽 정렬 */
+      gap: 8px;                   /* ← 초기화/검색 버튼 사이 간격 */
+      margin-top: auto;           /* 남은 세로 공간을 모두 위쪽 여백으로 채워 하단에 고정 */
+      padding-top: 10px;          /* 위쪽 카테고리와의 최소 간격 */
+    }
+
+    /* ── 초기화 버튼 ── */
+    .action-btn {
+      background: var(--tag-off-bg);
+      border: 1.5px solid var(--tag-off-border);
+      border-radius: 6px;
+      padding: 7px 20px;          /* ← 버튼 안쪽 여백 (위아래/좌우) */
+      font-size: 13px;            /* ← 버튼 글자 크기 */
+      font-family: 'Noto Serif KR', serif;
+      color: var(--tag-off-text);
+      cursor: pointer;
+      transition: background 0.15s; /* 호버 시 배경색 부드럽게 변환 */
+    }
+    .action-btn:hover { background: #d9cfb0; } /* ← 초기화 버튼 호버 배경색 */
+
+    /* ── 검색 버튼 ──
+       .action-btn에 .search 클래스가 추가된 형태.
+       초기화 버튼 스타일을 상속받고 색만 반전시킴.
+    ── */
+    .action-btn.search {
+      background: var(--tag-on-bg);   /* ← 검색 버튼 배경 (어두운 색) */
+      color: var(--tag-on-text);      /* ← 검색 버튼 글자색 (밝은 색) */
+      border-color: var(--tag-on-bg);
+    }
+    .action-btn.search:hover { background: #4a3d30; } /* ← 검색 버튼 호버 배경색 */
+
+
+    /* ╔═══════════════════════════════════════════════╗
+       ║  [접은 화면]  #screen-closed                  ║
+       ╚═══════════════════════════════════════════════╝ */
+
+    /* ── 접은 화면의 작은 책 ──
+       margin-left: auto → 가로 방향 남은 공간을 왼쪽 여백으로 채워 오른쪽에 붙임
+       margin-right: 60px → 오른쪽 끝에서 60px 띄움
+    ── */
+    #closed-book {
+      position: relative;        /* 내부 책갈피 버튼(position:absolute)의 기준점 */
+      width: 320px;              /* ← 접은 책 너비 */
+      height: 380px;             /* ← 접은 책 높이 */
+      background: var(--book-bg);
+      border: 2px solid var(--book-border);
+      border-radius: 20px;       /* ← 모서리 둥글기 */
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+      margin-left: auto;         /* 오른쪽으로 밀어붙이기 */
+      margin-right: 60px;        /* ← 오른쪽 여백 */
+    }
+
+    /* ── 접은 화면의 책갈피 버튼 위치 재정의 ──
+       .bookmark-btn 의 기본 right:60px를 이 선택자로 덮어씀
+    ── */
+    #closed-book .bookmark-btn {
+      right: 40px;               /* ← 접은 책 기준 오른쪽 거리 */
+    }
+
+    /* ── 접은 화면 전체 레이아웃 ──
+       align-items: center → 보고서 영역과 닫힌 책을 세로 가운데 정렬
+    ── */
+    #screen-closed {
+      align-items: center;
+    }
+
+    /* ── 접은 화면 왼쪽의 결과(보고서) 영역 ──
+       flex: 1 → #screen-closed 안에서 남은 가로 공간을 최대한 차지함
+                 (닫힌 책이 오른쪽 고정 너비를 가지므로 나머지를 채움)
+    ── */
+    #result-area {
+      flex: 1;                   /* 남은 가로 공간 모두 차지 */
+      max-width: 500px;          /* ← 결과 영역 최대 너비 (이 이상 늘어나지 않음) */
+      background: #e8e8e8;       /* ← 결과 영역 배경색 */
+      border-radius: 12px;       /* ← 결과 영역 모서리 둥글기 */
+      padding: 28px 32px;        /* ← 결과 영역 안쪽 여백 (위아래/좌우) */
+      margin: 40px 0 40px 60px;  /* ← 결과 영역 바깥 여백: 위/오른/아래/왼 */
+      overflow-y: auto;          /* 내용이 많으면 세로 스크롤 생성 */
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); /* 안쪽 테두리 선 (얕은 입체감) */
+    }
+
+    /* ── 보고서 제목 ("보고서") ── */
+    #result-area h2 {
+      text-align: center;        /* 제목 가운데 정렬 */
+      font-size: 15px;           /* ← 보고서 제목 크기 */
+      color: #555;               /* ← 제목 색 */
+      margin-bottom: 20px;       /* ← 제목과 내용 사이 여백 */
+      font-weight: 400;          /* 보통 굵기 (700이면 굵게) */
+    }
+
+    /* ── 보고서 줄 목록 컨테이너 ──
+       flex-direction: column → 줄(1, 2, 3...)을 세로로 쌓음
+    ── */
+    .report-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;                 /* ← 줄 사이 간격 */
+    }
+
+    /* ── 보고서 한 줄 (번호 + 내용) ──
+       align-items: baseline → 번호와 태그 텍스트의 기준선(글자 밑줄)을 맞춤
+    ── */
+    .report-line {
+      display: flex;
+      align-items: baseline;     /* 번호와 텍스트 글자 기준선 정렬 */
+      gap: 8px;                  /* ← 번호와 내용 사이 간격 */
+      font-size: 13px;
+      color: #666;
+      border-bottom: 1px solid #ccc; /* ← 줄 아래 밑줄 색 */
+      padding-bottom: 8px;       /* 밑줄과 내용 사이 간격 */
+    }
+
+    /* ── 줄 번호 (1. 2. 3. ...) ── */
+    .report-line .num {
+      color: #888;               /* ← 번호 색 */
+      min-width: 18px;           /* 번호 최소 너비 (10. 처럼 두 자리도 밀리지 않게) */
+    }
+
+    /* ── 결과 태그 (ON 상태였던 버튼 이름 표시) ──
+       display: inline-block → 인라인이지만 width/padding 등 블록 속성 사용 가능
+    ── */
+    .result-tag {
+      display: inline-block;
+      background: #2c2620;       /* ← 결과 태그 배경색 (버튼 ON 상태와 동일) */
+      color: #fdf3d7;            /* ← 결과 태그 글자색 */
+      border-radius: 4px;        /* ← 결과 태그 모서리 둥글기 */
+      padding: 2px 8px;          /* ← 태그 안쪽 여백 (위아래/좌우) */
+      font-size: 12px;           /* ← 태그 글자 크기 */
+      font-family: 'Noto Serif KR', serif;
+    }
+
+  </style>
 </head>
 <body>
 
-	<!-- ─────────────────────────────────────────
-		[ 화살표 버튼 ]
-		클릭 시 필터 패널 열기/닫기
-		화살표 방향은 JS에서 자동 전환
-	───────────────────────────────────────── -->
-	<button class="scroll-btn" id="toggleBtn" aria-label="필터 열기/닫기" onclick="togglePanel()">
-	<svg id="arrowIcon" viewBox="0 0 24 24">
-		<!-- 아래 화살표 (패널 닫힌 상태) -->
-		<path d="M12 16l-6-6h12z"/>
-	</svg>
-	</button>
+
+  <!-- ═══════════════════════════════════════════════
+       [ 인트로 화면 ]
+       - class="screen active" → 페이지 로드 시 이 화면이 첫 번째로 보임
+       - active 클래스는 JS의 showScreen()이 제거하며 다른 화면으로 전환
+  ═══════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-intro">
+
+    <!-- 클릭 가능한 책 표지
+         onclick="startIntroAnimation()" → 클릭 시 JS 함수 호출
+         단, JS 내부에서 introDone=true 이후 onclick을 null로 제거하므로 1회만 동작 -->
+    <div id="intro-book" onclick="startIntroAnimation()">
+
+      <!-- 눈 3개가 들어있는 컨테이너
+           초기 opacity:0 (CSS에서 설정) → 투명 상태로 시작
+           JS에서 show-lines / show-eyes 클래스를 순서대로 추가해 애니메이션 실행 -->
+      <div id="eye-container">
+
+        <!-- ══════════════════════════════════════════════
+             [ 눈 SVG 구조 설명 ]
+
+             각 눈은 SVG로 그려지며, 레이어(쌓이는 순서)가 중요:
+               1. 흰자 타원 (fill: 회색)             ← 눈알 배경
+               2. 위쪽 눈꺼풀 rect (fill: 책 배경색) ← 눈 위쪽을 가리는 덮개
+               3. 아래쪽 눈꺼풀 rect (fill: 책 배경색) ← 눈 아래쪽을 가리는 덮개
+               4. 동공 타원 (fill: 검정)             ← 눈꺼풀 rect 위에 그려짐
+               5. 윤곽선 타원 (fill:none, stroke)    ← 눈 테두리선 (맨 위에 그려짐)
+
+             [닫힌 상태 (show-lines 단계)]:
+               눈꺼풀 rect가 눈알과 동공을 가리고 있음.
+               남은 것: 위쪽 윤곽선과 아래쪽 윤곽선이 맞닿는 선이 직선처럼 보임.
+               → "감은 눈 = 직선" 효과
+
+             [열리는 단계 (show-eyes 단계)]:
+               openEyelids() 함수가 위쪽 rect를 scaleY(0)으로 위로,
+               아래쪽 rect를 scaleY(0)으로 아래로 접어서 눈꺼풀이 벌어지는 효과.
+        ══════════════════════════════════════════════ -->
+
+        <!-- ── 눈 1 ── -->
+        <svg class="eye-svg" viewBox="0 0 120 68" xmlns="http://www.w3.org/2000/svg">
+          <!-- viewBox="0 0 120 68": SVG 내부 좌표계 크기 (너비 120, 높이 68의 가상 공간) -->
+
+          <!-- 레이어 1: 흰자 (눈알 배경) -->
+          <!-- cx/cy: 타원 중심 좌표 / rx/ry: 가로/세로 반지름 / stroke: 윤곽선 색 -->
+          <ellipse cx="60" cy="34" rx="58" ry="30" fill="#ddd" stroke="#555" stroke-width="1.5"/>
+
+          <!-- 레이어 2: 위쪽 눈꺼풀 (눈의 위 절반을 덮는 직사각형) -->
+          <!-- fill="var(--book-bg)": 책 배경색과 동일하게 칠해 눈이 없는 것처럼 보이게 함 -->
+          <!-- y="0" height="34": SVG 좌표계 기준 위쪽 절반(0~34px) 영역을 덮음 -->
+          <rect class="eyelid-clip" id="lid-top-1" x="0" y="0" width="120" height="34"
+            fill="var(--book-bg)"/>
+
+          <!-- 레이어 3: 아래쪽 눈꺼풀 (눈의 아래 절반을 덮는 직사각형) -->
+          <!-- y="34" height="34": SVG 좌표계 기준 아래쪽 절반(34~68px) 영역을 덮음 -->
+          <rect class="eyelid-clip" id="lid-bot-1" x="0" y="34" width="120" height="34"
+            fill="var(--book-bg)"/>
+
+          <!-- 레이어 4: 동공 (눈꺼풀 rect 위에 그려지므로 눈꺼풀이 열려야 보임) -->
+          <!-- rx="26" ry="26": 원형에 가까운 동공 -->
+          <ellipse cx="60" cy="34" rx="26" ry="26" fill="#111"/>
+
+          <!-- 레이어 5: 눈꺼풀 윤곽선 (맨 마지막에 그려 항상 위에 표시됨) -->
+          <!-- fill="none": 내부를 채우지 않음 (선만 보임) → show-lines 단계에서 직선처럼 보이는 원인 -->
+          <ellipse cx="60" cy="34" rx="58" ry="30" fill="none" stroke="#555" stroke-width="1.5"/>
+        </svg>
+
+        <!-- ── 눈 2 (구조 동일, id만 다름) ── -->
+        <svg class="eye-svg" viewBox="0 0 120 68" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="34" rx="58" ry="30" fill="#ddd" stroke="#555" stroke-width="1.5"/>
+          <rect class="eyelid-clip" id="lid-top-2" x="0" y="0" width="120" height="34"
+            fill="var(--book-bg)"/>
+          <rect class="eyelid-clip" id="lid-bot-2" x="0" y="34" width="120" height="34"
+            fill="var(--book-bg)"/>
+          <ellipse cx="60" cy="34" rx="26" ry="26" fill="#111"/>
+          <ellipse cx="60" cy="34" rx="58" ry="30" fill="none" stroke="#555" stroke-width="1.5"/>
+        </svg>
+
+        <!-- ── 눈 3 (구조 동일, id만 다름) ── -->
+        <svg class="eye-svg" viewBox="0 0 120 68" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="34" rx="58" ry="30" fill="#ddd" stroke="#555" stroke-width="1.5"/>
+          <rect class="eyelid-clip" id="lid-top-3" x="0" y="0" width="120" height="34"
+            fill="var(--book-bg)"/>
+          <rect class="eyelid-clip" id="lid-bot-3" x="0" y="34" width="120" height="34"
+            fill="var(--book-bg)"/>
+          <ellipse cx="60" cy="34" rx="26" ry="26" fill="#111"/>
+          <ellipse cx="60" cy="34" rx="58" ry="30" fill="none" stroke="#555" stroke-width="1.5"/>
+        </svg>
+
+      </div><!-- /#eye-container 끝 -->
+    </div><!-- /#intro-book 끝 -->
+  </div><!-- /#screen-intro 끝 -->
 
 
-	<!-- ─────────────────────────────────────────
-		[ 필터 패널 ]
-		처음엔 "closed" 상태로 숨겨짐
-		togglePanel() 호출 시 "open"으로 전환
+  <!-- ═══════════════════════════════════════════════
+       [ 펼친 화면 ]
+       - class="screen" (active 없음) → 처음에는 숨김
+       - showScreen('screen-open') 호출 시 active가 붙어 표시됨
+  ═══════════════════════════════════════════════ -->
+  <div class="screen" id="screen-open">
+    <div id="open-book">
 
-		[ 단일 선택 방식 ]
-		data-group="그룹명" — 같은 그룹 버튼끼리 묶음
-		같은 그룹 안에서는 1개만 선택 가능
-		이미 선택된 버튼 재클릭 시 선택 해제
-	───────────────────────────────────────── -->
-	<div class="filter-panel closed" id="filterPanel">
+      <!-- 책갈피 버튼: 클릭 시 goToClosed() → 접은 화면으로 전환
+           aria-label: 스크린리더(시각장애인용 보조 기술)가 버튼 용도를 읽어줌 (접근성) -->
+      <button class="bookmark-btn" onclick="goToClosed()" aria-label="접기">
+        <!-- 위 방향 화살표 SVG: path d="M12 8l6 6H6z" → 위로 뾰족한 삼각형 -->
+        <svg viewBox="0 0 24 24"><path d="M12 8l6 6H6z"/></svg>
+      </button>
 
-	<!-- 형태 행 — data-group="형태" 로 묶임 -->
-	<div class="row">
-		<span class="row-label">형태</span>
-																		
-		<button class="tag-btn" data-group="형태" onclick="selectOne(this)">유기체</button>
-		<button class="tag-btn" data-group="형태" onclick="selectOne(this)">무기체</button>
-		<button class="tag-btn" data-group="형태" onclick="selectOne(this)">영체</button>
-	</div>
+      <!-- ──────── 왼쪽 페이지 ──────── -->
+      <div class="page-left">
 
-	<!-- 이동 행 — data-group="이동" 으로 묶임 -->
-	<div class="row">
-		<span class="row-label">이동</span>
-		<button class="tag-btn" onclick="toggle(this)">보행</button>
-		<button class="tag-btn" onclick="toggle(this)">비행</button>
-		<button class="tag-btn" onclick="toggle(this)">굴착</button>
-		<button class="tag-btn" onclick="toggle(this)">부유</button>
-		<button class="tag-btn" onclick="toggle(this)">순간이동</button>
-	</div>
+        <!-- [ 형태 카테고리 ]
+             단일 선택: data-group="형태" 버튼 중 하나만 ON 가능
+             toggleSingle(this) → 클릭된 버튼(this)을 함수에 전달 -->
+        <div class="category">
+          <div class="cat-label">형태</div>
+          <!-- data-group="형태": JS의 toggleSingle()이 같은 그룹을 찾아 전체 OFF 후 하나만 ON -->
+          <div class="cat-tags">
+            <button class="tag-btn" data-group="형태" onclick="toggleSingle(this)">유기체</button>
+            <button class="tag-btn" data-group="형태" onclick="toggleSingle(this)">무기체</button>
+            <button class="tag-btn" data-group="형태" onclick="toggleSingle(this)">영체</button>
+          </div>
+        </div>
 
-	<!-- 환경 행 — data-group="환경" 으로 묶임 -->
-	<div class="row">
-		<span class="row-label">환경</span>
-		<button class="tag-btn" data-group="환경" onclick="selectOne(this)">지상</button>
-		<button class="tag-btn" data-group="환경" onclick="selectOne(this)">공중</button>
-		<button class="tag-btn" data-group="환경" onclick="selectOne(this)">지하</button>
-		<button class="tag-btn" data-group="환경" onclick="selectOne(this)">우주</button>
-	</div>
+        <!-- [ 환경 카테고리 ]
+             단일 선택 -->
+        <div class="category">
+          <div class="cat-label">환경</div>
+          <div class="cat-tags">
+            <button class="tag-btn" data-group="환경" onclick="toggleSingle(this)">지상</button>
+            <button class="tag-btn" data-group="환경" onclick="toggleSingle(this)">공중</button>
+            <button class="tag-btn" data-group="환경" onclick="toggleSingle(this)">우주</button>
+            <button class="tag-btn" data-group="환경" onclick="toggleSingle(this)">지하</button>
+            <button class="tag-btn" data-group="환경" onclick="toggleSingle(this)">수중</button>
+          </div>
+        </div>
 
-	<!-- 지능 행 — data-group="지능" 으로 묶임 -->
-	<div class="row">
-		<span class="row-label">지능</span>
-		<button class="tag-btn" data-group="지능" onclick="selectOne(this)">짐승</button>
-		<button class="tag-btn" data-group="지능" onclick="selectOne(this)">인간</button>
-	</div>
+        <!-- [ 이동 카테고리 ]
+             다중 선택: data-group 대신 data-multi="true" 사용
+             toggleMulti(this) → 해당 버튼만 ON/OFF (다른 버튼에 영향 없음)
+             여러 개 동시에 ON 가능한 유일한 카테고리 -->
+        <div class="category">
+          <div class="cat-label">이동</div>
+          <div class="cat-tags">
+            <!-- data-multi="true": 다중 선택 허용 표시 (JS의 doSearch()에서 그룹명 대체로 사용) -->
+            <button class="tag-btn" data-multi="true" onclick="toggleMulti(this)">보행</button>
+            <button class="tag-btn" data-multi="true" onclick="toggleMulti(this)">비행</button>
+            <button class="tag-btn" data-multi="true" onclick="toggleMulti(this)">순간이동</button>
+            <button class="tag-btn" data-multi="true" onclick="toggleMulti(this)">굴착</button>
+            <button class="tag-btn" data-multi="true" onclick="toggleMulti(this)">부유</button>
+          </div>
+        </div>
 
-	<!-- 성향 행 — data-group="성향" 으로 묶임 -->
-	<div class="row">
-		<span class="row-label">성향</span>
-		<button class="tag-btn" data-group="성향" onclick="selectOne(this)">인간 좋아</button>
-		<button class="tag-btn" data-group="성향" onclick="selectOne(this)">인간 맛있어</button>
-		<button class="tag-btn" data-group="성향" onclick="selectOne(this)">인간 무서워</button>
-		<button class="tag-btn" data-group="성향" onclick="selectOne(this)">인간 싫어</button>
-		<button class="tag-btn" data-group="성향" onclick="selectOne(this)">인간 죽여</button>
-	</div>
+      </div><!-- /.page-left 끝 -->
 
-	<!-- 하단 버튼 -->
-	<div class="bottom-row">
-		<button class="action-btn" onclick="resetAll()">초기화</button>
-		<button class="action-btn search" onclick="doSearch()">검색</button>
-	</div>
+      <!-- ──────── 오른쪽 페이지 ──────── -->
+      <div class="page-right">
 
-	</div>
+        <!-- [ 지능 카테고리 ]
+             단일 선택 -->
+        <div class="category">
+          <div class="cat-label">지능</div>
+          <div class="cat-tags">
+            <button class="tag-btn" data-group="지능" onclick="toggleSingle(this)">짐승</button>
+            <button class="tag-btn" data-group="지능" onclick="toggleSingle(this)">인간</button>
+          </div>
+        </div>
 
-	<script>
-	var isOpen = false; // 패널 열림 상태 추적
+        <!-- [ 성향 카테고리 ]
+             단일 선택 -->
+        <div class="category">
+          <div class="cat-label">성향</div>
+          <div class="cat-tags">
+            <button class="tag-btn" data-group="성향" onclick="toggleSingle(this)">인간 좋아</button>
+            <button class="tag-btn" data-group="성향" onclick="toggleSingle(this)">인간 맛있어</button>
+            <button class="tag-btn" data-group="성향" onclick="toggleSingle(this)">인간 무서워</button>
+            <button class="tag-btn" data-group="성향" onclick="toggleSingle(this)">인간 싫어</button>
+            <button class="tag-btn" data-group="성향" onclick="toggleSingle(this)">인간 죽여</button>
+          </div>
+        </div>
 
-	// ─── 패널 열기 / 닫기 ───────────────────
-	function togglePanel() {
-		var panel = document.getElementById('filterPanel');
-		var icon	= document.getElementById('arrowIcon');
-		isOpen = !isOpen;
+        <!-- ── 하단 버튼 영역 ── -->
+        <div class="bottom-actions">
+          <!-- 초기화 버튼: resetAll() 호출 → 모든 .active 제거 -->
+          <button class="action-btn" onclick="resetAll()">초기화</button>
+          <!-- 검색 버튼: doSearch() 호출 → 선택값 수집 후 접은 화면으로 전환 -->
+          <button class="action-btn search" onclick="doSearch()">검색</button>
+        </div>
 
-		if (isOpen) {
-		panel.classList.remove('closed');
-		panel.classList.add('open');
-		// 위 화살표로 전환
-		icon.innerHTML = '<path d="M12 8l6 6H6z"/>'; // 위 화살표
-		} else {
-		panel.classList.remove('open');
-		panel.classList.add('closed');
-		// 아래 화살표로 전환
-		icon.innerHTML = '<path d="M12 16l-6-6h12z"/>'; // 아래 화살표
-		}
-	}
-	// ─── 태그 버튼 ON / OFF 전환 ───────────
-	function toggle(btn) {
-		btn.classList.toggle('active');
-	}
-		// active 클래스가 붙으면 ON (어두운 색)
-		// active 클래스가 빠지면 OFF (밝은 색)
-	// ─── 단일 선택: 같은 data-group 안에서 1개만 on ──────────────
-	// 1) 이미 active인 버튼 재클릭 → 선택 해제
-	// 2) 다른 버튼 클릭 → 같은 그룹 전체 off 후 해당 버튼만 on
-	function selectOne(btn) {
-		var group = btn.getAttribute('data-group');
-		var siblings = document.querySelectorAll('.tag-btn[data-group="' + group + '"]');
+      </div><!-- /.page-right 끝 -->
+    </div><!-- /#open-book 끝 -->
+  </div><!-- /#screen-open 끝 -->
 
-		if (btn.classList.contains('active')) {
-		btn.classList.remove('active'); // 재클릭 시 해제
-		} else {
-		siblings.forEach(function(b) { b.classList.remove('active'); }); // 그룹 전체 off
-		btn.classList.add('active'); // 클릭한 것만 on
-		}
-	}
 
-	// ─── 초기화: 모든 버튼 off ──────────────
-	function resetAll() {
-		document.querySelectorAll('.tag-btn.active').forEach(function(b) {
-		b.classList.remove('active');
-		});
-	}
+  <!-- ═══════════════════════════════════════════════
+       [ 접은 화면 ]
+       - 왼쪽: 보고서(검색 결과 표시)
+       - 오른쪽: 작은 책 + 책갈피(펼친 화면으로 복귀)
+  ═══════════════════════════════════════════════ -->
+  <div class="screen" id="screen-closed">
 
-	// ─── 검색: 선택된 항목 수집 ─────────────
-	function doSearch() {
-		var selected = [];
-		document.querySelectorAll('.tag-btn.active').forEach(function(b) {
-		selected.push(b.textContent.trim());
-		});
-		console.log('검색 조건:', selected);
-		alert('선택된 필터: ' + (selected.length ? selected.join(', ') : '없음'));
-	}
-	</script>
+    <!-- 검색 결과 표시 영역: doSearch()가 이 안의 내용을 JS로 동적 생성 -->
+    <div id="result-area">
+      <h2>보고서</h2>
+      <!-- report-lines: JS에서 innerHTML로 결과 줄을 채워 넣는 컨테이너 -->
+      <div class="report-lines" id="report-lines">
+        <!-- 초기 빈 줄 6개: 검색 전에 빈 줄이 보이도록 기본값으로 넣음
+             검색 버튼 클릭 시 JS가 이 내용을 덮어씀 -->
+        <div class="report-line"><span class="num">1.</span></div>
+        <div class="report-line"><span class="num">2.</span></div>
+        <div class="report-line"><span class="num">3.</span></div>
+        <div class="report-line"><span class="num">4.</span></div>
+        <div class="report-line"><span class="num">5.</span></div>
+        <div class="report-line"><span class="num">6.</span></div>
+      </div>
+    </div>
 
+    <!-- 접은 상태의 작은 책 -->
+    <div id="closed-book">
+      <!-- 책갈피 버튼: 클릭 시 goToOpen() → 펼친 화면으로 복귀 -->
+      <button class="bookmark-btn" onclick="goToOpen()" aria-label="펼치기">
+        <!-- 아래 방향 화살표 SVG: path d="M12 16l-6-6h12z" → 아래로 뾰족한 삼각형 -->
+        <svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12z"/></svg>
+      </button>
+    </div>
+
+  </div><!-- /#screen-closed 끝 -->
+
+
+  <script>
+    /* ═══════════════════════════════════════════════════════
+       [ 인트로 애니메이션 ]
+
+       전체 흐름:
+         클릭 → [0ms]   show-lines 클래스 추가
+                         → opacity 0.15로 전환. 눈꺼풀이 닫혀 있어 윤곽선만 직선처럼 보임
+              → [500ms] show-lines 제거 + show-eyes 추가 + openEyelids() 실행
+                         → opacity 1로 완전히 나타나면서 눈꺼풀이 위아래로 벌어짐
+              → [1000ms] showScreen('screen-open') 으로 펼친 화면 전환
+    ═══════════════════════════════════════════════════════ */
+
+    // 인트로 애니메이션이 이미 실행됐는지 추적하는 플래그
+    // var: 함수/전역 스코프. 이 변수는 새로고침 전까지 유지되어 1회 실행을 보장함
+    var introDone = false;
+
+    // 책 표지 클릭 시 실행되는 함수
+    function startIntroAnimation() {
+
+      // introDone이 true면 이미 실행된 것이므로 즉시 종료 (중복 실행 방지)
+      // return: 함수 실행을 여기서 멈춤
+      if (introDone) return;
+      introDone = true; // 이 시점부터 다시 클릭해도 아무 일도 일어나지 않음
+
+      // 책 클릭 커서 제거 및 클릭 이벤트 비활성화
+      // onclick = null: 이벤트 핸들러를 제거해 이후 클릭을 완전히 무시
+      document.getElementById('intro-book').style.cursor = 'default';
+      document.getElementById('intro-book').onclick = null;
+
+      // eye-container DOM 요소를 변수에 저장 (반복 접근 시 성능 절약)
+      var eyeContainer = document.getElementById('eye-container');
+
+      /* ── 단계 1: 직선(감은 눈 윤곽) 표시 ──
+         show-lines 클래스를 추가 → CSS에서 opacity: 0.15로 전환
+         눈꺼풀이 아직 닫혀 있으므로 흰자/동공은 보이지 않고
+         눈꺼풀 가장자리의 타원 윤곽선(stroke)만 희미하게 직선처럼 비침
+      ── */
+      eyeContainer.classList.add('show-lines');
+      // classList.add(): 해당 클래스를 요소에 추가 (이미 있으면 무시)
+
+      /* ── 단계 2: 눈꺼풀 열림 (0.5초 후) ──
+         setTimeout(콜백함수, 밀리초): 지정한 시간 후 콜백을 한 번 실행
+      ── */
+      setTimeout(function() {
+
+        // show-lines 제거 + show-eyes 추가
+        // classList.remove(): 해당 클래스를 요소에서 제거
+        eyeContainer.classList.remove('show-lines');
+        eyeContainer.classList.add('show-eyes'); // opacity: 1 로 전환
+
+        // 눈꺼풀을 위아래로 접어 눈이 열리는 효과 실행
+        openEyelids();
+
+      }, 500); // ← 단계 1 지속 시간 (0.5초 = 500ms). 변경 시 단계 간격이 달라짐
+
+      /* ── 단계 3: 펼친 화면으로 전환 (1초 후) ── */
+      setTimeout(function() {
+        showScreen('screen-open'); // 인트로 화면 숨기고 펼친 화면 표시
+      }, 1000); // ← 전체 인트로 애니메이션 총 시간 (1초 = 1000ms)
+    }
+
+    /* ── 눈꺼풀 열기 함수 ──
+       위쪽 눈꺼풀 rect: transform-origin을 'center top'으로 설정 후 scaleY(0)
+                         → 위쪽 끝을 축으로 위로 접히며 사라짐
+       아래쪽 눈꺼풀 rect: transform-origin을 'center bottom'으로 설정 후 scaleY(0)
+                           → 아래쪽 끝을 축으로 아래로 접히며 사라짐
+    ── */
+    function openEyelids() {
+
+      // 위쪽 눈꺼풀 3개 (눈 1, 2, 3의 lid-top)에 각각 적용
+      // 배열.forEach(): 배열의 각 항목에 대해 콜백 함수를 순서대로 실행
+      ['lid-top-1','lid-top-2','lid-top-3'].forEach(function(id) {
+        var el = document.getElementById(id); // 해당 id의 rect 요소를 가져옴
+        el.style.transition = 'transform 0.45s ease';
+        // ↑ 변형(transform)에 0.45초 ease 전환 적용 (ease: 시작/끝이 느리고 중간이 빠름)
+        el.style.transformOrigin = 'center top';
+        // ↑ 변형 기준점을 '가운데 상단'으로 설정 → 윗부분을 축으로 위로 접힘
+        el.style.transform = 'scaleY(0)';
+        // ↑ 세로 방향으로 0배 압축 → 사실상 사라지는 효과
+      });
+
+      // 아래쪽 눈꺼풀 3개 (눈 1, 2, 3의 lid-bot)에 각각 적용
+      ['lid-bot-1','lid-bot-2','lid-bot-3'].forEach(function(id) {
+        var el = document.getElementById(id);
+        el.style.transition = 'transform 0.45s ease';
+        el.style.transformOrigin = 'center bottom';
+        // ↑ 변형 기준점을 '가운데 하단'으로 설정 → 아랫부분을 축으로 아래로 접힘
+        el.style.transform = 'scaleY(0)';
+      });
+    }
+
+
+    /* ═══════════════════════════════════════════════════════
+       [ 화면 전환 ]
+    ═══════════════════════════════════════════════════════ */
+
+    // 지정한 id의 화면만 표시하고 나머지는 숨기는 범용 함수
+    function showScreen(id) {
+      // querySelectorAll(): CSS 선택자와 일치하는 모든 요소를 NodeList로 반환
+      // forEach(): NodeList의 각 요소에 순서대로 콜백 실행
+      document.querySelectorAll('.screen').forEach(function(s) {
+        s.classList.remove('active'); // 모든 화면에서 active 제거 (전부 숨김)
+      });
+      document.getElementById(id).classList.add('active'); // 원하는 화면만 active 추가 (표시)
+    }
+
+    // 펼친 화면 → 접은 화면으로 이동 (책갈피 버튼 또는 검색 버튼에서 호출)
+    function goToClosed() {
+      showScreen('screen-closed');
+    }
+
+    // 접은 화면 → 펼친 화면으로 이동 (접은 화면의 책갈피 버튼에서 호출)
+    function goToOpen() {
+      showScreen('screen-open');
+    }
+
+
+    /* ═══════════════════════════════════════════════════════
+       [ 태그 버튼 토글 ]
+    ═══════════════════════════════════════════════════════ */
+
+    // 단일 선택 함수 (형태 / 환경 / 지능 / 성향 카테고리에 사용)
+    // 같은 data-group 내에서 하나만 ON 상태를 유지함
+    // 이미 ON인 버튼을 다시 누르면 OFF (토글)
+    function toggleSingle(btn) {
+
+      // btn.getAttribute('data-group'): 클릭된 버튼의 data-group 속성값 읽기
+      var group = btn.getAttribute('data-group');
+
+      // 클릭 전에 이미 ON(active) 상태였는지 기억해 둠
+      // classList.contains(): 해당 클래스가 있으면 true, 없으면 false
+      var wasActive = btn.classList.contains('active');
+
+      // 같은 그룹의 버튼을 모두 OFF 상태로 초기화
+      // 속성 선택자 [data-group="..."] 로 해당 그룹 버튼 전체를 선택
+      document.querySelectorAll('[data-group="' + group + '"]').forEach(function(b) {
+        b.classList.remove('active');
+      });
+
+      // 클릭 전에 OFF였던 버튼이라면 이제 ON으로 전환
+      // 클릭 전에 이미 ON이었다면 위에서 이미 OFF됐으므로 그냥 두면 됨 (토글 완성)
+      if (!wasActive) {
+        btn.classList.add('active');
+      }
+    }
+
+    // 다중 선택 함수 (이동 카테고리만 사용)
+    // 클릭할 때마다 해당 버튼 하나만 ON ↔ OFF 전환
+    // 다른 버튼에는 영향을 주지 않아 여러 개 동시 ON이 가능
+    function toggleMulti(btn) {
+      // classList.toggle(): active가 있으면 제거(OFF), 없으면 추가(ON)
+      btn.classList.toggle('active');
+    }
+
+    // 초기화 함수: 현재 ON 상태인 모든 버튼을 OFF로 되돌림
+    function resetAll() {
+      // '.tag-btn.active': active 클래스가 붙은 tag-btn 요소를 전부 선택
+      document.querySelectorAll('.tag-btn.active').forEach(function(b) {
+        b.classList.remove('active');
+      });
+    }
+
+
+    /* ═══════════════════════════════════════════════════════
+       [ 검색 & 결과 표시 ]
+    ═══════════════════════════════════════════════════════ */
+
+    // 현재 ON 상태인 버튼을 카테고리별로 수집해 보고서에 표시한 뒤 접은 화면으로 전환
+    function doSearch() {
+
+      // 선택된 필터를 카테고리별로 묶는 객체
+      // 구조 예시: { "형태": ["유기체"], "이동": ["보행", "비행"], "지능": ["짐승"] }
+      var results = {};
+
+      // active 클래스가 붙은 모든 tag-btn을 순회
+      document.querySelectorAll('.tag-btn.active').forEach(function(b) {
+
+        // data-group이 있으면 그 값을 사용, 없으면(이동 카테고리는 data-multi 사용) '이동'으로 대체
+        // || 연산자: 왼쪽이 null/undefined/빈문자열 등 거짓값이면 오른쪽 값을 사용
+        var group = b.getAttribute('data-group') || '이동';
+
+        // 해당 그룹 키가 results에 없으면 빈 배열로 초기화
+        if (!results[group]) results[group] = [];
+
+        // 버튼 텍스트를 배열에 추가 (trim(): 앞뒤 공백 제거)
+        results[group].push(b.textContent.trim());
+      });
+
+      // results 객체를 [키, 값] 쌍의 배열로 변환
+      // 예: Object.entries({ "형태": ["유기체"] }) → [ ["형태", ["유기체"]] ]
+      var entries = Object.entries(results);
+
+      // 보고서 줄 컨테이너 참조
+      var linesEl = document.getElementById('report-lines');
+      linesEl.innerHTML = ''; // 기존 내용 초기화 (새 결과로 덮어쓰기 전 비움)
+
+      if (entries.length === 0) {
+        // 선택된 필터가 없으면 빈 줄 6개 출력
+        for (var i = 1; i <= 6; i++) {
+          linesEl.innerHTML +=
+            '<div class="report-line"><span class="num">' + i + '.</span></div>';
+        }
+      } else {
+        // 선택된 카테고리별로 보고서 줄 생성
+        entries.forEach(function(entry, idx) {
+          var cat  = entry[0]; // 카테고리 이름 (예: "형태")
+          var tags = entry[1]; // 선택된 항목 배열 (예: ["유기체"])
+
+          // 각 태그를 .result-tag 스팬으로 감싸고 공백으로 연결
+          // Array.map(): 배열의 각 요소를 변환한 새 배열 반환
+          // Array.join(' '): 배열 요소를 공백으로 이어 붙여 문자열로 만듦
+          var tagsHtml = tags.map(function(t) {
+            return '<span class="result-tag">' + t + '</span>';
+          }).join(' ');
+
+          // 보고서 한 줄 HTML 생성: "번호. 카테고리명 [태그1] [태그2]" 형태
+          linesEl.innerHTML +=
+            '<div class="report-line">' +
+              '<span class="num">' + (idx + 1) + '.</span>' +
+              '<strong style="margin-right:6px;color:#555;font-size:12px;">' + cat + '</strong>' +
+              tagsHtml +
+            '</div>';
+        });
+
+        // 선택된 카테고리가 6개 미만이면 나머지를 빈 줄로 채워 항상 6줄 유지
+        for (var j = entries.length + 1; j <= 6; j++) {
+          linesEl.innerHTML +=
+            '<div class="report-line"><span class="num">' + j + '.</span></div>';
+        }
+      }
+
+      // 보고서 작성 완료 후 접은 화면으로 전환
+      goToClosed();
+    }
+
+  </script>
 </body>
 </html>
